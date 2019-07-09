@@ -3,11 +3,11 @@ import os
 import sqlite3
 import uuid
 
-from flask import Flask, g, json
+from flask import Flask, g, json, jsonify
 
 application = Flask(__name__)
 application.config.from_mapping(
-    CHORD_SERVICES=os.environ.get("CHORD_SERVICES", ""),
+    CHORD_SERVICES=os.environ.get("CHORD_SERVICES", "chord_services.json"),
     DATABASE=os.environ.get("DATABASE", "chord_service_registry.db")
 )
 
@@ -20,7 +20,7 @@ def get_db():
     return g.db
 
 
-def close_db():
+def close_db(_e=None):
     db = g.pop("db", None)
     if db is not None:
         db.close()
@@ -31,16 +31,16 @@ def init_db():
     c = db.cursor()
 
     with application.open_resource("schema.sql") as sf:
-        db.executescript(sf.read())
+        db.executescript(sf.read().decode("utf-8"))
 
-        with application.open_resource(application.config["CHORD_SERVICES"]) as cf:
+        with open(os.path.join(os.getcwd(), application.config["CHORD_SERVICES"]), "r") as cf:
             sl = json.load(cf)
             for s in sl:
                 r_id = uuid.uuid4()
                 creation_time = datetime.datetime.utcnow().isoformat("T") + "Z"
                 c.execute(
-                    "INSERT INTO services VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %i)",
-                    (r_id,           # UUID
+                    "INSERT INTO services VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (str(r_id),      # UUID
                      s["id"],        # Service Name TODO: Get from /service-info
                      "TODO",         # URL TODO: Figure out how to get this
                      "TODO",         # Service Type TODO: Get from /service-info
@@ -59,8 +59,9 @@ def init_db():
 
 application.teardown_appcontext(close_db)
 
-if not os.path.exists(application.config["DATABASE"]):
-    init_db()
+with application.app_context():
+    if not os.path.exists(os.path.join(os.getcwd(), application.config["DATABASE"])):
+        init_db()
 
 
 def format_service(s):
@@ -86,14 +87,14 @@ def services():
     db = get_db()
     c = db.cursor()
     c.execute("SELECT * FROM services")
-    return [format_service(s) for s in c.fetchall()]
+    return jsonify([format_service(s) for s in c.fetchall()])
 
 
 @application.route("/services/<uuid:service_id>")
 def service_by_id(service_id):
     db = get_db()
     c = db.cursor()
-    c.execute("SELECT * FROM services WHERE id = %s", (service_id,))
+    c.execute("SELECT * FROM services WHERE id = ?", (str(service_id),))
 
     service = c.fetchone()
     if service is None:
@@ -114,4 +115,4 @@ def service_types():
     db = get_db()
     c = db.cursor()
     c.execute("SELECT DISTINCT service_type FROM services")
-    return [t[0] for t in c.fetchall()]
+    return jsonify([t[0] for t in c.fetchall()])
