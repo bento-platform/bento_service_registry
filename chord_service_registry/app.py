@@ -1,3 +1,4 @@
+import chord_service_registry
 import datetime
 import os
 import sqlite3
@@ -116,3 +117,19 @@ def service_types():
     c = db.cursor()
     c.execute("SELECT DISTINCT service_type FROM services")
     return jsonify([t[0] for t in c.fetchall()])
+
+
+@application.route("/service-info")
+def service_info():
+    # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
+
+    return jsonify({
+        "id": "ca.distributedgenomics.chord_service_registry",  # TODO: Should be globally unique
+        "name": "CHORD Service Registry",                       # TODO: Should be globally unique
+        "type": "urn:ga4gh:service-registry",
+        "description": "Service registry for a CHORD application.",
+        "organization": "GenAP",
+        "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
+        "version": chord_service_registry.__version__,
+        "extension": {}
+    })
