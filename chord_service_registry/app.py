@@ -31,7 +31,9 @@ def init_db():
     db = get_db()
     c = db.cursor()
 
+    print("Attempting to load schema.sql...")
     with application.open_resource("schema.sql") as sf:
+        print("Loaded.")
         db.executescript(sf.read().decode("utf-8"))
 
         with open(os.path.join(os.getcwd(), application.config["CHORD_SERVICES"]), "r") as cf:
