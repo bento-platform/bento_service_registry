@@ -43,7 +43,7 @@ def init_db():
                     "INSERT INTO services VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (str(r_id),      # UUID
                      s["id"],        # Service Name TODO: Get from /service-info
-                     "TODO",         # URL TODO: Figure out how to get this
+                     f"/{s['id']}",  # URL TODO: Figure out how to get this
                      "TODO",         # Service Type TODO: Get from /service-info
                      creation_time,  # Created At
                      creation_time,  # Updated At
