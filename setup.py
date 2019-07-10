@@ -16,6 +16,7 @@ setuptools.setup(
     url="TODO",
     packages=["chord_service_registry"],
     install_requires=["Flask"],
+    include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
