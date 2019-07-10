@@ -5,12 +5,34 @@ import sqlite3
 import uuid
 
 from flask import Flask, g, json, jsonify
+from typing import Dict
 
 application = Flask(__name__)
 application.config.from_mapping(
     CHORD_SERVICES=os.environ.get("CHORD_SERVICES", "chord_services.json"),
     DATABASE=os.environ.get("DATABASE", "chord_service_registry.db")
 )
+
+
+def insert_service_record(c: sqlite3.Cursor, s: Dict):
+    r_id = str(uuid.uuid4())
+    creation_time = datetime.datetime.utcnow().isoformat("T") + "Z"
+
+    c.execute(
+        "INSERT INTO services VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (r_id,  # UUID
+         s["id"],  # Service Name TODO: Get from /service-info
+         f"/{s['id']}",  # URL TODO: Figure out how to get this
+         "TODO",  # Service Type TODO: Get from /service-info
+         creation_time,  # Created At
+         creation_time,  # Updated At
+         "TODO",  # Contact URL TODO: Where to get this from?
+         "TODO",  # Description TODO: Get from /service-info
+         s["id"],  # Chord ID (unique within an instance)
+         1 if s["data_service"] else 0)  # Boolean (is it a data service)?
+    )
+
+    return r_id
 
 
 def get_db():
@@ -31,29 +53,43 @@ def init_db():
     db = get_db()
     c = db.cursor()
 
-    print("Attempting to load schema.sql...")
     with application.open_resource("schema.sql") as sf:
-        print("Loaded.")
         db.executescript(sf.read().decode("utf-8"))
 
         with open(os.path.join(os.getcwd(), application.config["CHORD_SERVICES"]), "r") as cf:
             sl = json.load(cf)
             for s in sl:
-                r_id = uuid.uuid4()
-                creation_time = datetime.datetime.utcnow().isoformat("T") + "Z"
-                c.execute(
-                    "INSERT INTO services VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (str(r_id),      # UUID
-                     s["id"],        # Service Name TODO: Get from /service-info
-                     f"/{s['id']}",  # URL TODO: Figure out how to get this
-                     "TODO",         # Service Type TODO: Get from /service-info
-                     creation_time,  # Created At
-                     creation_time,  # Updated At
-                     "TODO",         # Contact URL TODO: Where to get this from?
-                     "TODO",         # Description TODO: Get from /service-info
-                     s["id"],        # Chord ID (unique within an instance)
-                     1 if s["data_service"] else 0)  # Boolean (is it a data service)?
-                )
+                insert_service_record(c, s)
+
+    db.commit()
+
+
+def update_db():
+    db = get_db()
+    c = db.cursor()
+
+    c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='services'")
+    if c.fetchone() is None:
+        init_db()
+        return
+
+    with open(os.path.join(os.getcwd(), application.config["CHORD_SERVICES"]), "r") as cf:
+        sl = json.load(cf)
+        service_ids = []
+
+        for s in sl:
+            c.execute("SELECT * FROM services WHERE chord_service_id = ?", (s["id"],))
+            existing_service = c.fetchone()
+            if existing_service is None:
+                # Create a new service record, since the service is not in the database.
+                service_ids.append(insert_service_record(c, s))
+            else:
+                # TODO: May want to update service data
+                service_ids.append(existing_service["id"])
+
+        # Delete old services that are no longer in the chord_services.json file.
+        c.execute("DELETE FROM services WHERE id NOT IN ({})".format(", ".join(["?"] * len(service_ids))),
+                  tuple(service_ids))
 
     db.commit()
 
@@ -65,6 +101,8 @@ application.teardown_appcontext(close_db)
 with application.app_context():
     if not os.path.exists(os.path.join(os.getcwd(), application.config["DATABASE"])):
         init_db()
+    else:
+        update_db()
 
 
 def format_service(s):
@@ -78,7 +116,7 @@ def format_service(s):
         "contactUrl": s["contact_url"],
         "description": s["description"],
         "metadata": {
-            "chordServiceID": s["chord_service_id"],
+            "chordServiceID": s["chord_service_id"] == 1,
             "chordDataService": s["chord_data_service"]
         },
         "aliases": []

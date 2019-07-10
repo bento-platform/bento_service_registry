@@ -11,6 +11,6 @@ CREATE TABLE services (
   description TEXT NOT NULL,
 
   -- Metadata:
-  chord_service_id TEXT UNIQUE,
+  chord_service_id TEXT UNIQUE, -- Unique gives it an index
   chord_data_service INTEGER CHECK (chord_data_service = 0 OR chord_data_service = 1)
 );
