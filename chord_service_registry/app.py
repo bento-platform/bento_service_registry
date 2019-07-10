@@ -116,8 +116,8 @@ def format_service(s):
         "contactUrl": s["contact_url"],
         "description": s["description"],
         "metadata": {
-            "chordServiceID": s["chord_service_id"] == 1,
-            "chordDataService": s["chord_data_service"]
+            "chordServiceID": s["chord_service_id"],
+            "chordDataService": s["chord_data_service"] == 1
         },
         "aliases": []
     }
