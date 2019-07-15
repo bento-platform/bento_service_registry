@@ -118,8 +118,7 @@ def format_service(s):
         "metadata": {
             "chordServiceID": s["chord_service_id"],
             "chordDataService": s["chord_data_service"] == 1
-        },
-        "aliases": []
+        }
     }
 
 
