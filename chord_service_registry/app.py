@@ -165,7 +165,7 @@ def service_info():
     return jsonify({
         "id": "ca.distributedgenomics.chord_service_registry",  # TODO: Should be globally unique
         "name": "CHORD Service Registry",                       # TODO: Should be globally unique
-        "type": "urn:ga4gh:service-registry",
+        "type": "org.ga4gh:service-registry:0.0.0",
         "description": "Service registry for a CHORD application.",
         "organization": "GenAP",
         "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
