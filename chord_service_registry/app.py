@@ -167,8 +167,10 @@ def service_info():
         "name": "CHORD Service Registry",                       # TODO: Should be globally unique
         "type": "org.ga4gh:service-registry:0.0.0",
         "description": "Service registry for a CHORD application.",
-        "organization": "GenAP",
+        "organization": {
+            "name": "GenAP",
+            "url": "https://genap.ca/"
+        },
         "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
-        "version": chord_service_registry.__version__,
-        "extension": {}
+        "version": chord_service_registry.__version__
     })
