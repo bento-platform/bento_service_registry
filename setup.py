@@ -25,7 +25,7 @@ setuptools.setup(
     include_package_data=True,
 
     url="TODO",
-    license="MIT",
+    license="LGPLv3",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
