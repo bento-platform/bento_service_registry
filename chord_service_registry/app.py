@@ -35,6 +35,16 @@ def insert_service_record(c: sqlite3.Cursor, s: Dict):
     return r_id
 
 
+def update_service_record(c: sqlite3.Cursor, s: Dict):
+    if "id" not in s:
+        return
+
+    # TODO: Update more fields
+
+    c.execute("UPDATE services SET chord_data_service = ? WHERE name = ?",
+              (1 if s["data_service"] else 0, s["id"]))
+
+
 def get_db():
     if "db" not in g:
         g.db = sqlite3.connect(application.config["DATABASE"], detect_types=sqlite3.PARSE_DECLTYPES)
@@ -84,7 +94,8 @@ def update_db():
                 # Create a new service record, since the service is not in the database.
                 service_ids.append(insert_service_record(c, s))
             else:
-                # TODO: May want to update service data
+                # Update existing record with possibly-updated data.
+                update_service_record(c, s)
                 service_ids.append(existing_service["id"])
 
         # Delete old services that are no longer in the chord_services.json file.
