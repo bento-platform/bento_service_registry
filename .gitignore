@@ -2,3 +2,5 @@ __pycache__
 env/
 .idea/workspace.xml
 .idea/dataSources*
+*.db
+chord_services.json
