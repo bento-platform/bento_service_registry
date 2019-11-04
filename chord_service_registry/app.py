@@ -19,7 +19,7 @@ def insert_service_record(c: sqlite3.Cursor, s: Dict):
     creation_time = datetime.datetime.utcnow().isoformat("T") + "Z"
 
     c.execute(
-        "INSERT INTO services VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO services VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (r_id,  # UUID
          s["id"],  # Service Name TODO: Get from /service-info
          f"/{s['id']}",  # URL TODO: Figure out how to get this
@@ -129,7 +129,8 @@ def format_service(s):
         "description": s["description"],
         "metadata": {
             "chordServiceID": s["chord_service_id"],
-            "chordDataService": s["chord_data_service"] == 1
+            "chordDataService": s["chord_data_service"] == 1,
+            "chordManageableTables": s["chord_manageable_tables"] == 1
         }
     }
 
