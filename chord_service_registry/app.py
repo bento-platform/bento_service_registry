@@ -29,7 +29,8 @@ def insert_service_record(c: sqlite3.Cursor, s: Dict):
          "TODO",  # Contact URL TODO: Where to get this from?
          "TODO",  # Description TODO: Get from /service-info
          s["id"],  # Chord ID (unique within an instance)
-         1 if s["data_service"] else 0)  # Boolean (is it a data service)?
+         int(s["data_service"]),  # Boolean (is it a data service)?
+         int(s.get("manageable_tables", False)))  # Boolean (does it have user-manageable tables)?
     )
 
     return r_id
@@ -41,8 +42,8 @@ def update_service_record(c: sqlite3.Cursor, s: Dict):
 
     # TODO: Update more fields
 
-    c.execute("UPDATE services SET chord_data_service = ? WHERE name = ?",
-              (1 if s["data_service"] else 0, s["id"]))
+    c.execute("UPDATE services SET chord_data_service = ?, chord_manageable_tables = ? WHERE name = ?",
+              (int(s["data_service"]), int(s.get("manageable_tables", False)), s["id"]))
 
 
 def get_db():
