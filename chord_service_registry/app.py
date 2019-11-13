@@ -18,7 +18,7 @@ CHORD_SERVICES = json.load(open(CHORD_SERVICES_PATH, "r"))
 
 
 application = Flask(__name__)
-application.config.from_mapping(CHORD_SERVICES=os.environ.get("CHORD_SERVICES", "chord_services.json"))
+application.config.from_mapping(CHORD_SERVICES=CHORD_SERVICES_PATH)
 
 
 service_info_cache = {}
@@ -29,16 +29,17 @@ def get_service(s):
     s_url = urljoin(CHORD_URL, SERVICE_URL_BASE_PATH)
 
     if s_artifact not in service_info_cache:
+        print(urljoin(s_url + "/", "service-info"))
         r = requests.get(urljoin(s_url + "/", "service-info"))
         if r.status_code != 200:
             return None
 
-        service_info_cache[s["type"]["artifact"]] = {
+        service_info_cache[s_artifact] = {
             **r.json(),
             "url": s_url
         }
 
-    return service_info_cache[s["type"]["artifact"]]
+    return service_info_cache[s_artifact]
 
 
 @application.route("/chord-services")
