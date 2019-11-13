@@ -10,7 +10,7 @@ from urllib.parse import urljoin
 SERVICE_TYPE = f"ca.c3g.chord:service-registry:{chord_service_registry.__version__}"
 SERVICE_ID = os.environ.get("SERVICE_ID", SERVICE_TYPE)
 
-SERVICE_URL_BASE_PATH = os.environ.get("SERVICE_URL_BASE_PATH", "")
+BASE_FORMAT = os.environ.get("BASE_FORMAT", "/api/{artifact}")
 
 CHORD_URL = os.environ.get("CHORD_URL", "http://127.0.0.1:5000/")
 CHORD_SERVICES_PATH = os.environ.get("CHORD_SERVICES", "chord_services.json")
@@ -26,7 +26,7 @@ service_info_cache = {}
 
 def get_service(s):
     s_artifact = s["type"]["artifact"]
-    s_url = urljoin(CHORD_URL, SERVICE_URL_BASE_PATH)
+    s_url = urljoin(CHORD_URL, BASE_FORMAT.format(artifact=s_artifact))
 
     if s_artifact not in service_info_cache:
         print(urljoin(s_url + "/", "service-info"))
