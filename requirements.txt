@@ -1,7 +1,7 @@
 attrs==19.3.0
 certifi==2019.9.11
 chardet==3.0.4
-chord-lib==0.1.0
+git+https://github.com/c3g/chord_lib.git
 Click==7.0
 Flask==1.1.1
 idna==2.8
