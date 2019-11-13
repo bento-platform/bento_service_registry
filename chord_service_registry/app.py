@@ -7,7 +7,7 @@ from flask import Flask, json, jsonify
 from urllib.parse import urljoin
 
 
-SERVICE_TYPE = "org.ga4gh:service-registry:1.0.0"  # API version 1.0.0, NOT service version
+SERVICE_TYPE = f"ca.c3g.chord:service-registry:{chord_service_registry.__version__}"
 SERVICE_ID = os.environ.get("SERVICE_ID", SERVICE_TYPE)
 
 SERVICE_URL_BASE_PATH = os.environ.get("SERVICE_URL_BASE_PATH", "")
@@ -39,6 +39,11 @@ def get_service(s):
         }
 
     return service_info_cache[s["type"]["artifact"]]
+
+
+@application.route("/chord-services")
+def chord_services():
+    return jsonify(CHORD_SERVICES)
 
 
 @application.route("/services")
