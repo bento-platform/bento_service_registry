@@ -7,6 +7,9 @@ from flask import Flask, json, jsonify
 from urllib.parse import urljoin
 
 
+TIMEOUT = 1
+
+
 SERVICE_TYPE = f"ca.c3g.chord:service-registry:{chord_service_registry.__version__}"
 SERVICE_ID = os.environ.get("SERVICE_ID", SERVICE_TYPE)
 
@@ -30,8 +33,12 @@ def get_service(s):
 
     if s_artifact not in service_info_cache:
         print(urljoin(s_url + "/", "service-info"))
-        r = requests.get(urljoin(s_url + "/", "service-info"))
-        if r.status_code != 200:
+
+        try:
+            r = requests.get(urljoin(s_url + "/", "service-info"), timeout=TIMEOUT)
+            if r.status_code != 200:
+                return None
+        except requests.exceptions.Timeout:
             return None
 
         service_info_cache[s_artifact] = {
