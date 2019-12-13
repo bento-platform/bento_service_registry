@@ -2,6 +2,7 @@ import chord_service_registry
 import datetime
 import os
 import requests
+import sys
 
 from flask import Flask, json, jsonify
 from urllib.parse import urljoin
@@ -37,8 +38,10 @@ def get_service(s):
         try:
             r = requests.get(urljoin(s_url + "/", "service-info"), timeout=TIMEOUT)
             if r.status_code != 200:
+                print("Non-200 status code on {}: {}".format(s_artifact, r.status_code), file=sys.stderr)
                 return None
         except requests.exceptions.Timeout:
+            print("Timeout on {}".format(s_artifact), file=sys.stderr)
             return None
 
         service_info_cache[s_artifact] = {
