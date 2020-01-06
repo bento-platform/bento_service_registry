@@ -2,6 +2,7 @@ import chord_service_registry
 import datetime
 import os
 import requests
+import requests_unixsocket
 import sys
 
 from flask import Flask, json, jsonify
@@ -14,11 +15,16 @@ TIMEOUT = 1
 SERVICE_TYPE = f"ca.c3g.chord:service-registry:{chord_service_registry.__version__}"
 SERVICE_ID = os.environ.get("SERVICE_ID", SERVICE_TYPE)
 
-BASE_FORMAT = os.environ.get("BASE_FORMAT", "/api/{artifact}")
+SOCKET_FORMAT = os.environ.get("SOCKET_FORMAT", "/chord/tmp/{s_artifact}.sock")
+URL_PATH_FORMAT = os.environ.get("URL_PATH_FORMAT", "/api/{artifact}")
 
 CHORD_URL = os.environ.get("CHORD_URL", "http://127.0.0.1:5000/")
 CHORD_SERVICES_PATH = os.environ.get("CHORD_SERVICES", "chord_services.json")
 CHORD_SERVICES = json.load(open(CHORD_SERVICES_PATH, "r"))
+
+
+# Monkey-patch in UNIX socket support for the requests library, so we don't need to go outside the DMZ
+requests_unixsocket.monkeypatch()
 
 
 application = Flask(__name__)
@@ -30,13 +36,14 @@ service_info_cache = {}
 
 def get_service(s):
     s_artifact = s["type"]["artifact"]
-    s_url = urljoin(CHORD_URL, BASE_FORMAT.format(artifact=s_artifact))
+    s_socket = SOCKET_FORMAT.format(artifact=s_artifact)
+    s_url = urljoin(CHORD_URL, URL_PATH_FORMAT.format(artifact=s_artifact))
 
     if s_artifact not in service_info_cache:
-        print(urljoin(s_url + "/", "service-info"))
+        print(urljoin(s_socket + "/", "service-info"))
 
         try:
-            r = requests.get(urljoin(s_url + "/", "service-info"), timeout=TIMEOUT)
+            r = requests.get(urljoin(s_socket + "/", "service-info"), timeout=TIMEOUT)
             if r.status_code != 200:
                 print("Non-200 status code on {}: {}".format(s_artifact, r.status_code), file=sys.stderr)
                 return None
