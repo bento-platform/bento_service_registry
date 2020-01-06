@@ -11,12 +11,26 @@ from urllib.parse import urljoin
 TIMEOUT = 1
 
 
-SERVICE_TYPE = f"ca.c3g.chord:service-registry:{chord_service_registry.__version__}"
+SERVICE_ARTIFACT = "service-registry"
+SERVICE_TYPE = f"ca.c3g.chord:{SERVICE_ARTIFACT}:{chord_service_registry.__version__}"
 SERVICE_ID = os.environ.get("SERVICE_ID", SERVICE_TYPE)
+
+SERVICE_INFO = {
+    "id": SERVICE_ID,
+    "name": "CHORD Service Registry",  # TODO: Should be globally unique?
+    "type": SERVICE_TYPE,
+    "description": "Service registry for a CHORD application.",
+    "organization": {
+        "name": "C3G",
+        "url": "http://www.computationalgenomics.ca"
+    },
+    "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
+    "version": chord_service_registry.__version__
+}
 
 URL_PATH_FORMAT = os.environ.get("URL_PATH_FORMAT", "/api/{artifact}")
 
-CHORD_URL = os.environ.get("CHORD_URL", "http://127.0.0.1:5000/")
+CHORD_URL = os.environ.get("CHORD_URL", "http://127.0.0.1:5000/")  # Own node's URL
 CHORD_SERVICES_PATH = os.environ.get("CHORD_SERVICES", "chord_services.json")
 CHORD_SERVICES = json.load(open(CHORD_SERVICES_PATH, "r"))
 
@@ -33,21 +47,21 @@ def get_service(s):
     s_url = urljoin(CHORD_URL, URL_PATH_FORMAT.format(artifact=s_artifact))
 
     if s_artifact not in service_info_cache:
-        print(urljoin(s_url + "/", "service-info"))
+        if s_artifact == SERVICE_ARTIFACT:
+            service_info_cache[s_artifact] = {**SERVICE_INFO, "url": s_url}
+        else:
+            print(urljoin(s_url + "/", "service-info"))
 
-        try:
-            r = requests.get(urljoin(s_url + "/", "service-info"), timeout=TIMEOUT)
-            if r.status_code != 200:
-                print("Non-200 status code on {}: {}".format(s_artifact, r.status_code), file=sys.stderr)
+            try:
+                r = requests.get(urljoin(s_url + "/", "service-info"), timeout=TIMEOUT)
+                if r.status_code != 200:
+                    print("Non-200 status code on {}: {}".format(s_artifact, r.status_code), file=sys.stderr)
+                    return None
+            except requests.exceptions.Timeout:
+                print("Timeout on {}".format(s_artifact), file=sys.stderr)
                 return None
-        except requests.exceptions.Timeout:
-            print("Timeout on {}".format(s_artifact), file=sys.stderr)
-            return None
 
-        service_info_cache[s_artifact] = {
-            **r.json(),
-            "url": s_url
-        }
+            service_info_cache[s_artifact] = {**r.json(), "url": s_url}
 
     return service_info_cache[s_artifact]
 
@@ -85,16 +99,4 @@ def service_types():
 @application.route("/service-info")
 def service_info():
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
-
-    return jsonify({
-        "id": SERVICE_ID,
-        "name": "CHORD Service Registry",  # TODO: Should be globally unique?
-        "type": SERVICE_TYPE,
-        "description": "Service registry for a CHORD application.",
-        "organization": {
-            "name": "C3G",
-            "url": "http://www.computationalgenomics.ca"
-        },
-        "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
-        "version": chord_service_registry.__version__
-    })
+    return jsonify(SERVICE_INFO)
