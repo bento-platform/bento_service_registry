@@ -15,7 +15,7 @@ TIMEOUT = 1
 SERVICE_TYPE = f"ca.c3g.chord:service-registry:{chord_service_registry.__version__}"
 SERVICE_ID = os.environ.get("SERVICE_ID", SERVICE_TYPE)
 
-SOCKET_FORMAT = os.environ.get("SOCKET_FORMAT", "/chord/tmp/{s_artifact}.sock")
+SOCKET_FORMAT = os.environ.get("SOCKET_FORMAT", "/chord/tmp/{artifact}.sock")
 URL_PATH_FORMAT = os.environ.get("URL_PATH_FORMAT", "/api/{artifact}")
 
 CHORD_URL = os.environ.get("CHORD_URL", "http://127.0.0.1:5000/")
@@ -36,14 +36,14 @@ service_info_cache = {}
 
 def get_service(s):
     s_artifact = s["type"]["artifact"]
-    s_socket = SOCKET_FORMAT.format(artifact=s_artifact)
+    s_socket = f"http+unix:/{SOCKET_FORMAT.format(artifact=s_artifact)}"
     s_url = urljoin(CHORD_URL, URL_PATH_FORMAT.format(artifact=s_artifact))
 
     if s_artifact not in service_info_cache:
-        print(urljoin(s_socket + "/", "service-info"))
+        print(f"{s_socket}/service-info")
 
         try:
-            r = requests.get(urljoin(s_socket + "/", "service-info"), timeout=TIMEOUT)
+            r = requests.get(f"{s_socket}/service-info", timeout=TIMEOUT)
             if r.status_code != 200:
                 print("Non-200 status code on {}: {}".format(s_artifact, r.status_code), file=sys.stderr)
                 return None
