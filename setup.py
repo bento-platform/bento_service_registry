@@ -10,7 +10,7 @@ setuptools.setup(
     version="0.1.0",
 
     python_requires=">=3.6",
-    install_requires=["chord_lib @ git+https://github.com/c3g/chord_lib", "Flask", "requests"],
+    install_requires=["chord_lib[flask]==0.1.0", "Flask>=1.1,<2.0", "requests>=2.22,<3.0"],
 
     author="David Lougheed",
     author_email="david.lougheed@mail.mcgill.ca",
