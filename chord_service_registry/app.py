@@ -32,7 +32,8 @@ URL_PATH_FORMAT = os.environ.get("URL_PATH_FORMAT", "/api/{artifact}")
 
 CHORD_URL = os.environ.get("CHORD_URL", "http://127.0.0.1:5000/")  # Own node's URL
 CHORD_SERVICES_PATH = os.environ.get("CHORD_SERVICES", "chord_services.json")
-CHORD_SERVICES = json.load(open(CHORD_SERVICES_PATH, "r"))
+with open(CHORD_SERVICES_PATH, "r") as f:
+    CHORD_SERVICES = [s for s in json.load(f) if not s.get("disabled", False)]  # Skip disabled services
 
 
 application = Flask(__name__)
