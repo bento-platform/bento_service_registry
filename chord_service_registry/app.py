@@ -2,10 +2,12 @@ import chord_service_registry
 import os
 import requests
 import sys
+import traceback
 
-from chord_lib.responses.flask_errors import flask_not_found_error
+from chord_lib.responses.flask_errors import *
 from flask import Flask, json, jsonify
 from urllib.parse import urljoin
+from werkzeug.exceptions import BadRequest, NotFound
 
 
 TIMEOUT = 1
@@ -38,6 +40,26 @@ with open(CHORD_SERVICES_PATH, "r") as f:
 
 application = Flask(__name__)
 application.config.from_mapping(CHORD_SERVICES=CHORD_SERVICES_PATH)
+
+
+# TODO: Figure out common pattern and move to chord_lib
+
+def _wrap_tb(func):  # pragma: no cover
+    # TODO: pass exception?
+    def handle_error(_e):
+        print("[CHORD Service Registry] Encountered error:", file=sys.stderr)
+        traceback.print_exc()
+        return func()
+    return handle_error
+
+
+def _wrap(func):  # pragma: no cover
+    return lambda _e: func()
+
+
+application.register_error_handler(Exception, _wrap_tb(flask_internal_server_error))  # Generic catch-all
+application.register_error_handler(BadRequest, _wrap(flask_bad_request_error))
+application.register_error_handler(NotFound, _wrap(flask_not_found_error))
 
 
 service_info_cache = {}
