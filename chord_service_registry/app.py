@@ -1,9 +1,9 @@
 import chord_service_registry
-import datetime
 import os
 import requests
 import sys
 
+from chord_lib.responses.flask_errors import flask_not_found_error
 from flask import Flask, json, jsonify
 from urllib.parse import urljoin
 
@@ -82,12 +82,7 @@ def services():
 def service_by_id(service_id):
     services_by_id = {s["id"]: s for s in service_info_cache.values()}
     if service_id not in service_by_id:
-        return jsonify({
-            "code": 404,
-            "message": "Service not found",
-            "timestamp": datetime.datetime.utcnow().isoformat("T") + "Z",
-            "errors": [{"code": "not_found", "message": f"Service with ID {service_id} was not found in registry"}]
-        }), 404
+        return flask_not_found_error(f"Service with ID {service_id} was not found in registry")
 
     return get_service(services_by_id[service_id])
 
