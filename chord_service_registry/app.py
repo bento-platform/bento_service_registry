@@ -30,7 +30,7 @@ SERVICE_INFO = {
     "version": chord_service_registry.__version__
 }
 
-URL_PATH_FORMAT = os.environ.get("URL_PATH_FORMAT", "/api/{artifact}")
+URL_PATH_FORMAT = os.environ.get("URL_PATH_FORMAT", "api/{artifact}")
 
 CHORD_URL = os.environ.get("CHORD_URL", "http://127.0.0.1:5000/")  # Own node's URL
 CHORD_SERVICES_PATH = os.environ.get("CHORD_SERVICES", "chord_services.json")
