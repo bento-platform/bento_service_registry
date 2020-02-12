@@ -16,10 +16,11 @@ TIMEOUT = 1
 SERVICE_ARTIFACT = "service-registry"
 SERVICE_TYPE = f"ca.c3g.chord:{SERVICE_ARTIFACT}:{chord_service_registry.__version__}"
 SERVICE_ID = os.environ.get("SERVICE_ID", SERVICE_TYPE)
+SERVICE_NAME = "CHORD Service Registry"
 
 SERVICE_INFO = {
     "id": SERVICE_ID,
-    "name": "CHORD Service Registry",  # TODO: Should be globally unique?
+    "name": SERVICE_NAME,  # TODO: Should be globally unique?
     "type": SERVICE_TYPE,
     "description": "Service registry for a CHORD application.",
     "organization": {
@@ -47,7 +48,7 @@ application.config.from_mapping(CHORD_SERVICES=CHORD_SERVICES_PATH)
 def _wrap_tb(func):  # pragma: no cover
     # TODO: pass exception?
     def handle_error(_e):
-        print("[CHORD Service Registry] Encountered error:", file=sys.stderr)
+        print(f"[{SERVICE_NAME}] Encountered error:", file=sys.stderr)
         traceback.print_exc()
         return func()
     return handle_error
@@ -78,10 +79,10 @@ def get_service(s):
             try:
                 r = requests.get(urljoin(s_url + "/", "service-info"), timeout=TIMEOUT)
                 if r.status_code != 200:
-                    print("Non-200 status code on {}: {}".format(s_artifact, r.status_code), file=sys.stderr)
+                    print(f"[{SERVICE_NAME}] Non-200 status code on {s_artifact}: {r.status_code}", file=sys.stderr)
                     return None
             except requests.exceptions.Timeout:
-                print("Timeout on {}".format(s_artifact), file=sys.stderr)
+                print(f"Timeout on {s_artifact}", file=sys.stderr)
                 return None
 
             service_info_cache[s_artifact] = {**r.json(), "url": s_url}
