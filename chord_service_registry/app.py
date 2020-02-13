@@ -97,8 +97,7 @@ def chord_services():
 
 @application.route("/services")
 def services():
-    service_list = [get_service(s) for s in CHORD_SERVICES]
-    return jsonify([s for s in service_list if s is not None])
+    return jsonify([s for s in (get_service(s) for s in CHORD_SERVICES) if s is not None])
 
 
 @application.route("/services/<string:service_id>")
