@@ -7,7 +7,7 @@ with open("README.md", "r") as rf:
 
 setuptools.setup(
     name="chord_service_registry",
-    version="0.1.1",
+    version="0.1.2",
 
     python_requires=">=3.6",
     install_requires=["chord_lib[flask]==0.3.0", "Flask>=1.1,<2.0", "requests>=2.22,<3.0"],
