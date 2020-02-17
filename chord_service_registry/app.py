@@ -42,8 +42,8 @@ application = Flask(__name__)
 application.config.from_mapping(CHORD_SERVICES=CHORD_SERVICES_PATH)
 
 # Generic catch-all
-application.register_error_handler(Exception, flask_error_wrap_with_traceback(flask_internal_server_error))
-
+application.register_error_handler(Exception, flask_error_wrap_with_traceback(flask_internal_server_error,
+                                                                              service_name=SERVICE_NAME))
 application.register_error_handler(BadRequest, flask_error_wrap(flask_bad_request_error))
 application.register_error_handler(NotFound, flask_error_wrap(flask_not_found_error))
 
