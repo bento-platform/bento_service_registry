@@ -1,7 +1,7 @@
 attrs==19.3.0
 certifi==2019.11.28
 chardet==3.0.4
-chord-lib==0.2.0
+chord-lib==0.3.0
 Click==7.0
 Flask==1.1.1
 idna==2.8
@@ -17,5 +17,5 @@ redis==3.4.1
 requests==2.22.0
 six==1.14.0
 urllib3==1.25.8
-Werkzeug==0.16.0
+Werkzeug==1.0.0
 zipp==2.2.0
