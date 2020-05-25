@@ -35,7 +35,7 @@ URL_PATH_FORMAT = os.environ.get("URL_PATH_FORMAT", "api/{artifact}")
 CHORD_URL = os.environ.get("CHORD_URL", "http://127.0.0.1:5000/")  # Own node's URL
 CHORD_SERVICES_PATH = os.environ.get("CHORD_SERVICES", "chord_services.json")
 with open(CHORD_SERVICES_PATH, "r") as f:
-    CHORD_SERVICES = [s for s in json.load(f) if not s.get("disabled", False)]  # Skip disabled services
+    CHORD_SERVICES = [s for s in json.load(f) if not s.get("disabled")]  # Skip disabled services
 
 
 application = Flask(__name__)
@@ -48,7 +48,14 @@ application.register_error_handler(BadRequest, flask_error_wrap(flask_bad_reques
 application.register_error_handler(NotFound, flask_error_wrap(flask_not_found_error))
 
 
-service_info_cache = {}
+def get_service_url(artifact: str):
+    return urljoin(CHORD_URL, URL_PATH_FORMAT.format(artifact=artifact))
+
+
+service_info_cache = {
+    # Pre-populate service-info cache with data for the current service
+    SERVICE_ARTIFACT: {**SERVICE_INFO, "url": get_service_url(SERVICE_ARTIFACT)},
+}
 
 
 def get_service(s):
@@ -56,21 +63,21 @@ def get_service(s):
     s_url = urljoin(CHORD_URL, URL_PATH_FORMAT.format(artifact=s_artifact))
 
     if s_artifact not in service_info_cache:
-        if s_artifact == SERVICE_ARTIFACT:
-            service_info_cache[s_artifact] = {**SERVICE_INFO, "url": s_url}
-        else:
-            print(urljoin(s_url + "/", "service-info"))
+        service_info_url = urljoin(f"{s_url}/", "service-info")
 
-            try:
-                r = requests.get(urljoin(s_url + "/", "service-info"), timeout=TIMEOUT)
-                if r.status_code != 200:
-                    print(f"[{SERVICE_NAME}] Non-200 status code on {s_artifact}: {r.status_code}", file=sys.stderr)
-                    return None
-            except requests.exceptions.Timeout:
-                print(f"Timeout on {s_artifact}", file=sys.stderr)
+        print(f"[{SERVICE_NAME}] Contacting {service_info_url}", flush=True)
+
+        try:
+            r = requests.get(service_info_url, timeout=TIMEOUT)
+            if r.status_code != 200:
+                print(f"[{SERVICE_NAME}] Non-200 status code on {s_artifact}: {r.status_code}", file=sys.stderr,
+                      flush=True)
                 return None
+        except requests.exceptions.Timeout:
+            print(f"[{SERVICE_NAME}] Encountered timeout with {service_info_url}", file=sys.stderr, flush=True)
+            return None
 
-            service_info_cache[s_artifact] = {**r.json(), "url": s_url}
+        service_info_cache[s_artifact] = {**r.json(), "url": s_url}
 
     return service_info_cache[s_artifact]
 
