@@ -16,7 +16,7 @@ setuptools.setup(
 
     python_requires=">=3.6",
     install_requires=[
-        "chord_lib[flask]==0.9.0",
+        "bento_lib[flask]==0.11.0",
         "Flask>=1.1.2,<2.0", 
         "requests>=2.23,<3.0",
     ],
@@ -24,11 +24,11 @@ setuptools.setup(
     author=config["package"]["authors"],
     author_email=config["package"]["author_emails"],
 
-    description="An implementation of GA4GH Service Registry API for the CHORD project.",
+    description="An implementation of GA4GH Service Registry API for the Bento platform.",
     long_description=long_description,
     long_description_content_type="text/markdown",
 
-    packages=["chord_service_registry"],
+    packages=setuptools.find_packages(),
     include_package_data=True,
 
     url="https://github.com/c3g/chord_service_registry",

@@ -3,7 +3,13 @@ import os
 import requests
 import sys
 
-from chord_lib.responses.flask_errors import *
+from bento_lib.responses.flask_errors import (
+    flask_error_wrap,
+    flask_error_wrap_with_traceback,
+    flask_internal_server_error,
+    flask_bad_request_error,
+    flask_not_found_error,
+)
 from flask import Flask, json, jsonify
 from urllib.parse import urljoin
 from werkzeug.exceptions import BadRequest, NotFound
@@ -13,15 +19,15 @@ TIMEOUT = 1
 
 
 SERVICE_ARTIFACT = "service-registry"
-SERVICE_TYPE = f"ca.c3g.chord:{SERVICE_ARTIFACT}:{chord_service_registry.__version__}"
+SERVICE_TYPE = f"ca.c3g.bento:{SERVICE_ARTIFACT}:{chord_service_registry.__version__}"
 SERVICE_ID = os.environ.get("SERVICE_ID", SERVICE_TYPE)
-SERVICE_NAME = "CHORD Service Registry"
+SERVICE_NAME = "Bento Service Registry"
 
 SERVICE_INFO = {
     "id": SERVICE_ID,
     "name": SERVICE_NAME,  # TODO: Should be globally unique?
     "type": SERVICE_TYPE,
-    "description": "Service registry for a CHORD application.",
+    "description": "Service registry for a Bento platform node.",
     "organization": {
         "name": "C3G",
         "url": "http://www.computationalgenomics.ca"
