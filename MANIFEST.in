@@ -1,1 +1,1 @@
-include chord_service_registry/package.cfg
+include bento_service_registry/package.cfg

@@ -1,4 +1,4 @@
-import chord_service_registry
+import bento_service_registry
 import os
 import requests
 import sys
@@ -19,7 +19,7 @@ TIMEOUT = 1
 
 
 SERVICE_ARTIFACT = "service-registry"
-SERVICE_TYPE = f"ca.c3g.bento:{SERVICE_ARTIFACT}:{chord_service_registry.__version__}"
+SERVICE_TYPE = f"ca.c3g.bento:{SERVICE_ARTIFACT}:{bento_service_registry.__version__}"
 SERVICE_ID = os.environ.get("SERVICE_ID", SERVICE_TYPE)
 SERVICE_NAME = "Bento Service Registry"
 
@@ -33,7 +33,7 @@ SERVICE_INFO = {
         "url": "http://www.computationalgenomics.ca"
     },
     "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
-    "version": chord_service_registry.__version__
+    "version": bento_service_registry.__version__
 }
 
 URL_PATH_FORMAT = os.environ.get("URL_PATH_FORMAT", "api/{artifact}")
