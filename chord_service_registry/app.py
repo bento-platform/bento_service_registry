@@ -95,7 +95,7 @@ def services():
 @application.route("/services/<string:service_id>")
 def service_by_id(service_id):
     services_by_id = {s["id"]: s for s in service_info_cache.values()}
-    if service_id not in service_by_id:
+    if service_id not in services_by_id:
         return flask_not_found_error(f"Service with ID {service_id} was not found in registry")
 
     return get_service(services_by_id[service_id])
