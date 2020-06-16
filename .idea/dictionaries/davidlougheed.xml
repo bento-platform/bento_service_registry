@@ -2,6 +2,9 @@
   <dictionary name="davidlougheed">
     <words>
       <w>bento</w>
+      <w>posargs</w>
+      <w>pytest</w>
+      <w>testenv</w>
     </words>
   </dictionary>
 </component>

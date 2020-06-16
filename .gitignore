@@ -1,5 +1,7 @@
 __pycache__
 env/
+.coverage
+htmlcov/
 .idea/workspace.xml
 .idea/dataSources*
 chord_services.json
