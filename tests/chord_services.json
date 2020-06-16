@@ -5,7 +5,7 @@
       "artifact": "service-registry",
       "language": "python"
     },
-    "repository": "https://github.com/c3g/chord_service_registry",
+    "repository": "https://github.com/bento-platform/bento_service_registry",
     "data_service": false,
     "wsgi": true,
     "python_module": "bento_service_registry.app",

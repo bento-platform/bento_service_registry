@@ -31,7 +31,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     include_package_data=True,
 
-    url="https://github.com/c3g/chord_service_registry",
+    url="https://github.com/bento-platform/bento_service_registry",
     license="LGPLv3",
     classifiers=[
         "Programming Language :: Python :: 3",
