@@ -4,4 +4,4 @@ env/
 htmlcov/
 .idea/workspace.xml
 .idea/dataSources*
-chord_services.json
+/chord_services.json

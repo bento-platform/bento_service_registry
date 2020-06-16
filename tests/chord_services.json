@@ -1,0 +1,18 @@
+[
+  {
+    "type": {
+      "organization": "ca.c3g.bento",
+      "artifact": "service-registry",
+      "language": "python"
+    },
+    "repository": "https://github.com/c3g/chord_service_registry",
+    "data_service": false,
+    "wsgi": true,
+    "python_module": "bento_service_registry.app",
+    "python_callable": "application",
+    "run_environment": {
+      "CHORD_SERVICES": "./tests/chord_services.json",
+      "URL_PATH_FORMAT": ""
+    }
+  }
+]
