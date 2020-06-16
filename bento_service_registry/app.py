@@ -64,11 +64,10 @@ service_info_cache = {
 }
 
 
-def get_service(s):
-    s_artifact = s["type"]["artifact"]
-    s_url = urljoin(CHORD_URL, URL_PATH_FORMAT.format(artifact=s_artifact))
+def get_service(service_artifact):
+    s_url = urljoin(CHORD_URL, URL_PATH_FORMAT.format(artifact=service_artifact))
 
-    if s_artifact not in service_info_cache:
+    if service_artifact not in service_info_cache:
         service_info_url = urljoin(f"{s_url}/", "service-info")
 
         print(f"[{SERVICE_NAME}] Contacting {service_info_url}", flush=True)
@@ -76,16 +75,16 @@ def get_service(s):
         try:
             r = requests.get(service_info_url, timeout=TIMEOUT)
             if r.status_code != 200:
-                print(f"[{SERVICE_NAME}] Non-200 status code on {s_artifact}: {r.status_code}", file=sys.stderr,
+                print(f"[{SERVICE_NAME}] Non-200 status code on {service_artifact}: {r.status_code}", file=sys.stderr,
                       flush=True)
                 return None
         except requests.exceptions.Timeout:
             print(f"[{SERVICE_NAME}] Encountered timeout with {service_info_url}", file=sys.stderr, flush=True)
             return None
 
-        service_info_cache[s_artifact] = {**r.json(), "url": s_url}
+        service_info_cache[service_artifact] = {**r.json(), "url": s_url}
 
-    return service_info_cache[s_artifact]
+    return service_info_cache[service_artifact]
 
 
 @application.route("/chord-services")
@@ -95,7 +94,7 @@ def chord_services():
 
 @application.route("/services")
 def services():
-    return jsonify([s for s in (get_service(s) for s in CHORD_SERVICES) if s is not None])
+    return jsonify([s for s in (get_service(s["type"]["artifact"]) for s in CHORD_SERVICES) if s is not None])
 
 
 @application.route("/services/<string:service_id>")
@@ -104,7 +103,8 @@ def service_by_id(service_id):
     if service_id not in services_by_id:
         return flask_not_found_error(f"Service with ID {service_id} was not found in registry")
 
-    return get_service(services_by_id[service_id])
+    service_artifact = services_by_id[service_id]["type"].split(":")[1]
+    return get_service(service_artifact)
 
 
 @application.route("/services/types")
