@@ -12,5 +12,5 @@ for the Bento platform.
 To run the service, use the following command:
 
 ```bash
-FLASK_DEBUG=True FLASK_APP=chord_service_registry.app flask run
+FLASK_DEBUG=True FLASK_APP=bento_service_registry.app flask run
 ```
