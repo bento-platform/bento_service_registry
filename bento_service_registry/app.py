@@ -11,6 +11,7 @@ from bento_lib.responses.flask_errors import (
     flask_not_found_error,
 )
 from flask import Flask, json, jsonify
+from json.decoder import JSONDecodeError
 from urllib.parse import urljoin
 from werkzeug.exceptions import BadRequest, NotFound
 
@@ -82,7 +83,11 @@ def get_service(service_artifact):
             print(f"[{SERVICE_NAME}] Encountered timeout with {service_info_url}", file=sys.stderr, flush=True)
             return None
 
-        service_info_cache[service_artifact] = {**r.json(), "url": s_url}
+        try:
+            service_info_cache[service_artifact] = {**r.json(), "url": s_url}
+        except JSONDecodeError:
+            print(f"[{SERVICE_NAME}] Encountered invalid response from {service_info_url}: {r.text}")
+            return None
 
     return service_info_cache[service_artifact]
 
