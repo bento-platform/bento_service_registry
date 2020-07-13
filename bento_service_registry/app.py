@@ -10,7 +10,7 @@ from bento_lib.responses.flask_errors import (
     flask_bad_request_error,
     flask_not_found_error,
 )
-from flask import Flask, json, jsonify
+from flask import Flask, json, jsonify, request
 from json.decoder import JSONDecodeError
 from urllib.parse import urljoin
 from werkzeug.exceptions import BadRequest, NotFound
@@ -66,6 +66,13 @@ service_info_cache = {
 
 
 def get_service(service_artifact):
+    # Check for an Authorization HTTP header to forward to nested requests
+    headers = {}
+    # TODO: Move constant to bento_lib
+    auth_header = request.headers.get("X-Authorization", request.headers.get("Authorization"))
+    if auth_header:
+        headers["Authorization"] = auth_header
+
     s_url = urljoin(CHORD_URL, URL_PATH_FORMAT.format(artifact=service_artifact))
 
     if service_artifact not in service_info_cache:
@@ -74,7 +81,7 @@ def get_service(service_artifact):
         print(f"[{SERVICE_NAME}] Contacting {service_info_url}", flush=True)
 
         try:
-            r = requests.get(service_info_url, timeout=TIMEOUT)
+            r = requests.get(service_info_url, headers=headers, timeout=TIMEOUT)
             if r.status_code != 200:
                 print(f"[{SERVICE_NAME}] Non-200 status code on {service_artifact}: {r.status_code}", file=sys.stderr,
                       flush=True)
