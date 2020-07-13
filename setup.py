@@ -18,7 +18,7 @@ setuptools.setup(
     install_requires=[
         "bento_lib[flask]==0.11.0",
         "Flask>=1.1.2,<2.0", 
-        "requests>=2.23,<3.0",
+        "requests>=2.24.0,<3.0",
     ],
 
     author=config["package"]["authors"],
