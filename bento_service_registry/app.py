@@ -77,7 +77,7 @@ def get_service(service_artifact):
         # TODO: Move X-Auth... constant to bento_lib
         auth_header = request.headers.get("X-Authorization", request.headers.get("Authorization"))
         if auth_header:
-            print(auth_header, flush=True)  # TODO: remove
+            print("AUTH", auth_header, flush=True)  # TODO: remove
 
         try:
             r = requests.get(
