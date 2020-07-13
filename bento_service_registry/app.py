@@ -66,13 +66,6 @@ service_info_cache = {
 
 
 def get_service(service_artifact):
-    # Check for an Authorization HTTP header to forward to nested requests
-    headers = {}
-    # TODO: Move constant to bento_lib
-    auth_header = request.headers.get("X-Authorization", request.headers.get("Authorization"))
-    if auth_header:
-        headers["Authorization"] = auth_header
-
     s_url = urljoin(CHORD_URL, URL_PATH_FORMAT.format(artifact=service_artifact))
 
     if service_artifact not in service_info_cache:
@@ -80,12 +73,24 @@ def get_service(service_artifact):
 
         print(f"[{SERVICE_NAME}] Contacting {service_info_url}", flush=True)
 
+        # Optional Authorization HTTP header to forward to nested requests
+        # TODO: Move X-Auth... constant to bento_lib
+        auth_header = request.headers.get("X-Authorization", request.headers.get("Authorization"))
+        if auth_header:
+            print(auth_header, flush=True)  # TODO: remove
+
         try:
-            r = requests.get(service_info_url, headers=headers, timeout=TIMEOUT)
+            r = requests.get(
+                service_info_url,
+                headers={"Authorization": auth_header} if auth_header else {},
+                timeout=TIMEOUT,
+            )
+
             if r.status_code != 200:
                 print(f"[{SERVICE_NAME}] Non-200 status code on {service_artifact}: {r.status_code}", file=sys.stderr,
                       flush=True)
                 return None
+
         except requests.exceptions.Timeout:
             print(f"[{SERVICE_NAME}] Encountered timeout with {service_info_url}", file=sys.stderr, flush=True)
             return None
