@@ -27,14 +27,14 @@ pyflakes==2.2.0
 pyparsing==2.4.7
 pyrsistent==0.16.0
 pytest==6.0.1
-pytest-cov==2.10.0
+pytest-cov==2.10.1
 redis==3.5.3
 requests==2.24.0
 six==1.15.0
 toml==0.10.1
 tox==3.19.0
 urllib3==1.25.10
-virtualenv==20.0.30
+virtualenv==20.0.31
 wcwidth==0.2.5
 Werkzeug==1.0.1
 zipp==3.1.0
