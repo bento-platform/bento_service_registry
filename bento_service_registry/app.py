@@ -10,43 +10,25 @@ from bento_lib.responses.flask_errors import (
     flask_bad_request_error,
     flask_not_found_error,
 )
-from flask import Flask, json, jsonify, request
+from flask import Flask, current_app, json, jsonify, request
 from json.decoder import JSONDecodeError
 from urllib.parse import urljoin
 from werkzeug.exceptions import BadRequest, NotFound
 
 
-TIMEOUT = 1
-
-
 SERVICE_ARTIFACT = "service-registry"
 SERVICE_TYPE = f"ca.c3g.bento:{SERVICE_ARTIFACT}:{bento_service_registry.__version__}"
-SERVICE_ID = os.environ.get("SERVICE_ID", SERVICE_TYPE)
 SERVICE_NAME = "Bento Service Registry"
-
-SERVICE_INFO = {
-    "id": SERVICE_ID,
-    "name": SERVICE_NAME,  # TODO: Should be globally unique?
-    "type": SERVICE_TYPE,
-    "description": "Service registry for a Bento platform node.",
-    "organization": {
-        "name": "C3G",
-        "url": "http://www.computationalgenomics.ca"
-    },
-    "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
-    "version": bento_service_registry.__version__
-}
-
-URL_PATH_FORMAT = os.environ.get("URL_PATH_FORMAT", "api/{artifact}")
-
-CHORD_URL = os.environ.get("CHORD_URL", "http://127.0.0.1:5000/")  # Own node's URL
-CHORD_SERVICES_PATH = os.environ.get("CHORD_SERVICES", "chord_services.json")
-with open(CHORD_SERVICES_PATH, "r") as f:
-    CHORD_SERVICES = [s for s in json.load(f) if not s.get("disabled")]  # Skip disabled services
 
 
 application = Flask(__name__)
-application.config.from_mapping(CHORD_SERVICES=CHORD_SERVICES_PATH)
+application.config.from_mapping(
+    CHORD_SERVICES=os.environ.get("CHORD_SERVICES", "chord_services.json"),
+    CHORD_URL=os.environ.get("CHORD_URL", "http://127.0.0.1:5000/"),  # Own node's URL
+    CONTACT_TIMEOUT=int(os.environ.get("CONTACT_TIMEOUT", 1)),
+    SERVICE_ID=os.environ.get("SERVICE_ID", SERVICE_TYPE),
+    URL_PATH_FORMAT=os.environ.get("URL_PATH_FORMAT", "api/{artifact}"),
+)
 
 # Generic catch-all
 application.register_error_handler(Exception, flask_error_wrap_with_traceback(flask_internal_server_error,
@@ -56,17 +38,35 @@ application.register_error_handler(NotFound, flask_error_wrap(flask_not_found_er
 
 
 def get_service_url(artifact: str):
-    return urljoin(CHORD_URL, URL_PATH_FORMAT.format(artifact=artifact))
+    return urljoin(current_app.config["CHORD_URL"], current_app.config["URL_PATH_FORMAT"].format(artifact=artifact))
 
 
-service_info_cache = {
-    # Pre-populate service-info cache with data for the current service
-    SERVICE_ARTIFACT: {**SERVICE_INFO, "url": get_service_url(SERVICE_ARTIFACT)},
-}
+with application.app_context():
+    SERVICE_ID = current_app.config["SERVICE_ID"]
+    SERVICE_INFO = {
+        "id": SERVICE_ID,
+        "name": SERVICE_NAME,  # TODO: Should be globally unique?
+        "type": SERVICE_TYPE,
+        "description": "Service registry for a Bento platform node.",
+        "organization": {
+            "name": "C3G",
+            "url": "http://www.computationalgenomics.ca"
+        },
+        "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
+        "version": bento_service_registry.__version__
+    }
+
+    with open(current_app.config["CHORD_SERVICES"], "r") as f:
+        CHORD_SERVICES = [s for s in json.load(f) if not s.get("disabled")]  # Skip disabled services
+
+    service_info_cache = {
+        # Pre-populate service-info cache with data for the current service
+        SERVICE_ARTIFACT: {**SERVICE_INFO, "url": get_service_url(SERVICE_ARTIFACT)},
+    }
 
 
 def get_service(service_artifact):
-    s_url = urljoin(CHORD_URL, URL_PATH_FORMAT.format(artifact=service_artifact))
+    s_url = get_service_url(service_artifact)
 
     if service_artifact not in service_info_cache:
         service_info_url = urljoin(f"{s_url}/", "service-info")
@@ -81,7 +81,7 @@ def get_service(service_artifact):
             r = requests.get(
                 service_info_url,
                 headers={"Authorization": auth_header} if auth_header else {},
-                timeout=TIMEOUT,
+                timeout=current_app.config["CONTACT_TIMEOUT"],
             )
 
             if r.status_code != 200:
