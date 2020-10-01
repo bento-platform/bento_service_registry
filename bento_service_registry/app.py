@@ -85,8 +85,8 @@ def get_service(service_artifact):
             )
 
             if r.status_code != 200:
-                print(f"[{SERVICE_NAME}] Non-200 status code on {service_artifact}: {r.status_code}", file=sys.stderr,
-                      flush=True)
+                print(f"[{SERVICE_NAME}] Non-200 status code on {service_artifact}: {r.status_code}\n"
+                      f"                 Content: {r.text}", file=sys.stderr, flush=True)
                 return None
 
         except requests.exceptions.Timeout:
