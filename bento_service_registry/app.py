@@ -87,6 +87,13 @@ def get_service(service_artifact):
             if r.status_code != 200:
                 print(f"[{SERVICE_NAME}] Non-200 status code on {service_artifact}: {r.status_code}\n"
                       f"                 Content: {r.text}", file=sys.stderr, flush=True)
+
+                # If we have the special case where we got a JWT error from the proxy script, we can safely print out
+                # headers for debugging, since the JWT leaked isn't valid anyway.
+                if "invalid jwt" in r.text:
+                    print(f"                 Encountered auth error, tried to use header: {auth_header}",
+                          file=sys.stderr, flush=True)
+
                 return None
 
         except requests.exceptions.Timeout:
