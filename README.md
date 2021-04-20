@@ -39,6 +39,7 @@ The following environment variables are used to configure the
 CHORD_SERVICES=chord_services.json
 
 # Common URL base for all services
+# BENTO_URL also works for this
 CHORD_URL=http://127.0.0.1:5000/
 
 # Timeout, in seconds (integers only), for contacting services from the JSON
