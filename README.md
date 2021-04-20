@@ -1,6 +1,7 @@
 # Bento Service Registry
 
 ![Build Status](https://api.travis-ci.com/bento-platform/bento_service_registry.svg?branch=master)
+![Lint Status](https://github.com/bento-platform/bento_service_registry/workflows/Lint/badge.svg)
 [![codecov](https://codecov.io/gh/bento-platform/bento_service_registry/branch/master/graph/badge.svg)](https://codecov.io/gh/bento-platform/bento_service_registry)
 
 **Author:** David Lougheed, Canadian Centre for Computational Genomics
