@@ -34,9 +34,10 @@ application.config.from_mapping(
 
 # Generic catch-all
 application.register_error_handler(Exception, flask_error_wrap_with_traceback(flask_internal_server_error,
+                                                                              sr_compat=True,
                                                                               service_name=SERVICE_NAME))
-application.register_error_handler(BadRequest, flask_error_wrap(flask_bad_request_error))
-application.register_error_handler(NotFound, flask_error_wrap(flask_not_found_error))
+application.register_error_handler(BadRequest, flask_error_wrap(flask_bad_request_error, sr_compat=True))
+application.register_error_handler(NotFound, flask_error_wrap(flask_not_found_error, sr_compat=True))
 
 
 def get_service_url(artifact: str):
