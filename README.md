@@ -37,10 +37,11 @@ The following environment variables are used to configure the
 # (https://github.com/c3g/chord_singularity/blob/master/chord_services.schema.json)
 # A list of services on a single domain which are registered in the service
 # registry instance.
+# BENTO_SERVICES also works here.
 CHORD_SERVICES=chord_services.json
 
 # Common URL base for all services
-# BENTO_URL also works for this
+# BENTO_URL also works here.
 CHORD_URL=http://127.0.0.1:5000/
 
 # Timeout, in seconds (integers only), for contacting services from the JSON

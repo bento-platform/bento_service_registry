@@ -23,7 +23,7 @@ SERVICE_NAME = "Bento Service Registry"
 
 application = Flask(__name__)
 application.config.from_mapping(
-    CHORD_SERVICES=os.environ.get("CHORD_SERVICES", "chord_services.json"),
+    CHORD_SERVICES=os.environ.get("CHORD_SERVICES", os.environ.get("BENTO_SERVICES", "chord_services.json")),
     CHORD_URL=os.environ.get("CHORD_URL", os.environ.get("BENTO_URL", "http://127.0.0.1:5000/")),  # Own node's URL
     CONTACT_TIMEOUT=int(os.environ.get("CONTACT_TIMEOUT", 1)),
     SERVICE_ID=os.environ.get("SERVICE_ID", SERVICE_TYPE),
@@ -110,6 +110,7 @@ def get_service(service_artifact):
 
 
 @application.route("/chord-services")
+@application.route("/bento-services")
 def chord_services():
     return jsonify(CHORD_SERVICES)
 
