@@ -109,8 +109,8 @@ def get_service(service_artifact):
     return service_info_cache[service_artifact]
 
 
-@application.route("/chord-services")
 @application.route("/bento-services")
+@application.route("/chord-services")
 def chord_services():
     return jsonify(CHORD_SERVICES)
 
