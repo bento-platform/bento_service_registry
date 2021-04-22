@@ -23,7 +23,7 @@ SERVICE_NAME = "Bento Service Registry"
 
 application = Flask(__name__)
 application.config.from_mapping(
-    DEBUG=os.environ.get("CHORD_DEBUG", os.environ.get("FLASK_ENV", "production")).strip().lower() in (
+    BENTO_DEBUG=os.environ.get("CHORD_DEBUG", os.environ.get("FLASK_ENV", "production")).strip().lower() in (
         "true", "1", "development"),
     CHORD_SERVICES=os.environ.get("CHORD_SERVICES", os.environ.get("BENTO_SERVICES", "chord_services.json")),
     CHORD_URL=os.environ.get("CHORD_URL", os.environ.get("BENTO_URL", "http://127.0.0.1:5000/")),  # Own node's URL
@@ -85,7 +85,7 @@ def get_service(service_artifact):
                 service_info_url,
                 headers={"Authorization": auth_header} if auth_header else {},
                 timeout=current_app.config["CONTACT_TIMEOUT"],
-                verify=not current_app.config["DEBUG"],
+                verify=not current_app.config["BENTO_DEBUG"],
             )
 
             if r.status_code != 200:
