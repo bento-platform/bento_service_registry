@@ -2,6 +2,7 @@ import bento_service_registry
 import os
 import requests
 import sys
+import subprocess
 
 from bento_lib.responses.flask_errors import (
     flask_error_wrap,
@@ -22,6 +23,7 @@ SERVICE_NAME = "Bento Service Registry"
 
 
 application = Flask(__name__)
+
 application.config.from_mapping(
     BENTO_DEBUG=os.environ.get("CHORD_DEBUG", os.environ.get("FLASK_ENV", "production")).strip().lower() in (
         "true", "1", "development"),
@@ -44,6 +46,12 @@ def get_service_url(artifact: str):
     return urljoin(current_app.config["CHORD_URL"], current_app.config["URL_PATH_FORMAT"].format(artifact=artifact))
 
 
+def get_isDebbuging():
+    if (current_app.config["BENTO_DEBUG"]==True):
+        return True # development
+    else:
+        return False
+
 with application.app_context():
     SERVICE_ID = current_app.config["SERVICE_ID"]
     SERVICE_INFO = {
@@ -61,7 +69,7 @@ with application.app_context():
 
     with open(current_app.config["CHORD_SERVICES"], "r") as f:
         CHORD_SERVICES = [s for s in json.load(f) if not s.get("disabled")]  # Skip disabled services
-
+        
     service_info_cache = {
         # Pre-populate service-info cache with data for the current service
         SERVICE_ARTIFACT: {**SERVICE_INFO, "url": get_service_url(SERVICE_ARTIFACT)},
@@ -71,7 +79,7 @@ with application.app_context():
 def get_service(service_artifact):
     s_url = get_service_url(service_artifact)
 
-    if service_artifact not in service_info_cache:
+    if service_artifact:
         service_info_url = urljoin(f"{s_url}/", "service-info")
 
         print(f"[{SERVICE_NAME}] Contacting {service_info_url}", flush=True)
@@ -113,10 +121,24 @@ def get_service(service_artifact):
     return service_info_cache[service_artifact]
 
 
+@application.before_first_request
+def before_first_request_func():
+    try:
+        subprocess.run(["git", "config", "--global", "--add", "safe.directory", "/service-registry/bento_service_registry"])
+    except:
+        print("error in git config")
+
+
 @application.route("/bento-services")
 @application.route("/chord-services")
 def chord_services():
-    return jsonify(CHORD_SERVICES)
+    ### execute this in here allows to update the version of the services from chord-services
+    try:
+        with open(current_app.config["CHORD_SERVICES"], "r") as f:
+            chord_services_local = [s for s in json.load(f) if not s.get("disabled")]  # Skip disabled services
+    except:
+        print("no chord")
+    return jsonify(chord_services_local)
 
 
 @application.route("/services")
@@ -142,4 +164,23 @@ def service_types():
 @application.route("/service-info")
 def service_info():
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
-    return jsonify(SERVICE_INFO)
+    production_service_info = {"environment": "production"}
+    
+    if get_isDebbuging() == False:
+        production_service_info.update(SERVICE_INFO)
+        return jsonify(production_service_info)
+    
+    git_info = {"environment": "development"}
+    try:
+        res_tag = subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"])
+        if res_tag is not None:
+            git_tag = res_tag.decode("utf-8").rstrip()
+            git_info["git_tag"] = git_tag
+        res_branch= subprocess.check_output(["git", "branch", "--show-current"])
+        if res_branch is not None:
+            git_branch = res_branch.decode("utf-8").rstrip()
+            git_info["git_branch"] = git_branch
+        git_info.update(SERVICE_INFO)
+        return jsonify(git_info) # updated service info with the git info
+    except:
+        print("something went wrong at service-info")
