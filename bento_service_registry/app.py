@@ -46,12 +46,6 @@ def get_service_url(artifact: str):
     return urljoin(current_app.config["CHORD_URL"], current_app.config["URL_PATH_FORMAT"].format(artifact=artifact))
 
 
-def get_isDebbuging():
-    if (current_app.config["BENTO_DEBUG"]==True):
-        return True # development
-    else:
-        return False
-
 with application.app_context():
     SERVICE_ID = current_app.config["SERVICE_ID"]
     SERVICE_INFO = {
@@ -124,9 +118,9 @@ def get_service(service_artifact):
 @application.before_first_request
 def before_first_request_func():
     try:
-        subprocess.run(["git", "config", "--global", "--add", "safe.directory", "/service-registry/bento_service_registry"])
+        subprocess.run(["git", "config", "--global", "--add", "safe.directory", "./bento_service_registry"])
     except:
-        print("error in git config")
+        print("Error in dev-mode retrieving git folder configuration")
 
 
 @application.route("/bento-services")
@@ -137,7 +131,7 @@ def chord_services():
         with open(current_app.config["CHORD_SERVICES"], "r") as f:
             chord_services_local = [s for s in json.load(f) if not s.get("disabled")]  # Skip disabled services
     except:
-        print("no chord")
+        print("Error in dev-mode retrieving chord information") 
     return jsonify(chord_services_local)
 
 
@@ -164,23 +158,22 @@ def service_types():
 @application.route("/service-info")
 def service_info():
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
-    production_service_info = {"environment": "production"}
+    production_service_info = {"environment": "prod"}
     
-    if get_isDebbuging() == False:
+    if not current_app.config["BENTO_DEBUG"]:
         production_service_info.update(SERVICE_INFO)
         return jsonify(production_service_info)
     
-    git_info = {"environment": "development"}
+    git_info = {"environment": "dev"}
     try:
         res_tag = subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"])
-        if res_tag is not None:
-            git_tag = res_tag.decode("utf-8").rstrip()
-            git_info["git_tag"] = git_tag
+        if res_tag:
+            git_info["git_tag"] = res_tag.decode().rstrip()
         res_branch= subprocess.check_output(["git", "branch", "--show-current"])
-        if res_branch is not None:
-            git_branch = res_branch.decode("utf-8").rstrip()
-            git_info["git_branch"] = git_branch
+        if res_branch:
+            git_info["git_branch"] = res_branch.decode().rstrip()
         git_info.update(SERVICE_INFO)
         return jsonify(git_info) # updated service info with the git info
+    
     except:
-        print("something went wrong at service-info")
+        print("Error in dev-mode retrieving git information") 
