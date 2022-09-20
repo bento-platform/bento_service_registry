@@ -34,6 +34,8 @@ application.config.from_mapping(
     URL_PATH_FORMAT=os.environ.get("URL_PATH_FORMAT", "api/{artifact}"),
 )
 
+path_for_git = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
 # Generic catch-all
 application.register_error_handler(Exception, flask_error_wrap_with_traceback(flask_internal_server_error,
                                                                               sr_compat=True,
@@ -63,9 +65,10 @@ with application.app_context():
 
     with open(current_app.config["CHORD_SERVICES"], "r") as f:
         CHORD_SERVICES = [s for s in json.load(f) if not s.get("disabled")]  # Skip disabled services
-        
+
     service_info_cache = {
         # Pre-populate service-info cache with data for the current service
+        # TODO: investigate if this is necessary
         SERVICE_ARTIFACT: {**SERVICE_INFO, "url": get_service_url(SERVICE_ARTIFACT)},
     }
 
@@ -118,20 +121,22 @@ def get_service(service_artifact):
 @application.before_first_request
 def before_first_request_func():
     try:
-        subprocess.run(["git", "config", "--global", "--add", "safe.directory", "./bento_service_registry"])
-    except:
-        print("Error in dev-mode retrieving git folder configuration")
+        subprocess.run(["git", "config", "--global", "--add", "safe.directory", str(path_for_git)])
+    except Exception as e:
+        except_name = type(e).__name__
+        print("Error in dev-mode retrieving git folder configuration", except_name)
 
 
 @application.route("/bento-services")
 @application.route("/chord-services")
 def chord_services():
-    ### execute this in here allows to update the version of the services from chord-services
+    # execute this in here allows to update the version of the services from chord-services
     try:
         with open(current_app.config["CHORD_SERVICES"], "r") as f:
             chord_services_local = [s for s in json.load(f) if not s.get("disabled")]  # Skip disabled services
-    except:
-        print("Error in dev-mode retrieving chord information") 
+    except Exception as e:
+        except_name = type(e).__name__
+        print("Error in dev-mode retrieving chord information", except_name)
     return jsonify(chord_services_local)
 
 
@@ -159,21 +164,21 @@ def service_types():
 def service_info():
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
     production_service_info = {"environment": "prod"}
-    
     if not current_app.config["BENTO_DEBUG"]:
         production_service_info.update(SERVICE_INFO)
         return jsonify(production_service_info)
-    
+
     git_info = {"environment": "dev"}
     try:
         res_tag = subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"])
         if res_tag:
             git_info["git_tag"] = res_tag.decode().rstrip()
-        res_branch= subprocess.check_output(["git", "branch", "--show-current"])
+        res_branch = subprocess.check_output(["git", "branch", "--show-current"])
         if res_branch:
             git_info["git_branch"] = res_branch.decode().rstrip()
         git_info.update(SERVICE_INFO)
-        return jsonify(git_info) # updated service info with the git info
-    
-    except:
-        print("Error in dev-mode retrieving git information") 
+        return jsonify(git_info)  # updated service info with the git info
+
+    except Exception as e:
+        except_name = type(e).__name__
+        print("Error in dev-mode retrieving git information", except_name)
