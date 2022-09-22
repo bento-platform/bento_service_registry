@@ -66,7 +66,7 @@ with application.app_context():
     with open(current_app.config["CHORD_SERVICES"], "r") as f:
         CHORD_SERVICES = [s for s in json.load(f) if not s.get("disabled")]  # Skip disabled services
 
-    service_info_cache = {
+service_info_cache = {
         # Pre-populate service-info cache with data for the current service
         # TODO: investigate if this is necessary
         SERVICE_ARTIFACT: {**SERVICE_INFO, "url": get_service_url(SERVICE_ARTIFACT)},
@@ -76,46 +76,47 @@ with application.app_context():
 def get_service(service_artifact):
     s_url = get_service_url(service_artifact)
 
-    if service_artifact:
-        service_info_url = urljoin(f"{s_url}/", "service-info")
+    service_info_url = urljoin(f"{s_url}/", "service-info")
 
-        print(f"[{SERVICE_NAME}] Contacting {service_info_url}", flush=True)
+    print(f"[{SERVICE_NAME}] Contacting {service_info_url}", flush=True)
 
-        # Optional Authorization HTTP header to forward to nested requests
-        # TODO: Move X-Auth... constant to bento_lib
-        auth_header = request.headers.get("X-Authorization", request.headers.get("Authorization"))
+    # Optional Authorization HTTP header to forward to nested requests
+    # TODO: Move X-Auth... constant to bento_lib
+    auth_header = request.headers.get("X-Authorization", request.headers.get("Authorization"))
 
-        try:
-            r = requests.get(
-                service_info_url,
-                headers={"Authorization": auth_header} if auth_header else {},
-                timeout=current_app.config["CONTACT_TIMEOUT"],
-                verify=not current_app.config["BENTO_DEBUG"],
-            )
+    service_resp = {}
 
-            if r.status_code != 200:
-                print(f"[{SERVICE_NAME}] Non-200 status code on {service_artifact}: {r.status_code}\n"
-                      f"                 Content: {r.text}", file=sys.stderr, flush=True)
+    try:
+        r = requests.get(
+            service_info_url,
+            headers={"Authorization": auth_header} if auth_header else {},
+            timeout=current_app.config["CONTACT_TIMEOUT"],
+            verify=not current_app.config["BENTO_DEBUG"],
+        )
 
-                # If we have the special case where we got a JWT error from the proxy script, we can safely print out
-                # headers for debugging, since the JWT leaked isn't valid anyway.
-                if "invalid jwt" in r.text:
-                    print(f"                 Encountered auth error, tried to use header: {auth_header}",
-                          file=sys.stderr, flush=True)
+        if r.status_code != 200:
+            print(f"[{SERVICE_NAME}] Non-200 status code on {service_artifact}: {r.status_code}\n"
+                    f"                 Content: {r.text}", file=sys.stderr, flush=True)
 
-                return None
+            # If we have the special case where we got a JWT error from the proxy script, we can safely print out
+            # headers for debugging, since the JWT leaked isn't valid anyway.
+            if "invalid jwt" in r.text:
+                print(f"                 Encountered auth error, tried to use header: {auth_header}",
+                        file=sys.stderr, flush=True)
 
-        except requests.exceptions.Timeout:
-            print(f"[{SERVICE_NAME}] Encountered timeout with {service_info_url}", file=sys.stderr, flush=True)
             return None
 
-        try:
-            service_info_cache[service_artifact] = {**r.json(), "url": s_url}
-        except JSONDecodeError:
-            print(f"[{SERVICE_NAME}] Encountered invalid response from {service_info_url}: {r.text}")
-            return None
+    except requests.exceptions.Timeout:
+        print(f"[{SERVICE_NAME}] Encountered timeout with {service_info_url}", file=sys.stderr, flush=True)
+        return None
 
-    return service_info_cache[service_artifact]
+    try:
+        service_resp[service_artifact] = {**r.json(), "url": s_url}
+    except JSONDecodeError:
+        print(f"[{SERVICE_NAME}] Encountered invalid response from {service_info_url}: {r.text}")
+        return None
+
+    return service_resp[service_artifact]
 
 
 @application.before_first_request
