@@ -60,13 +60,15 @@ with application.app_context():
             "url": "http://www.computationalgenomics.ca"
         },
         "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
-        "version": bento_service_registry.__version__
+        "version": bento_service_registry.__version__,
+        "url": get_service_url(SERVICE_ARTIFACT),
+        "environment": "prod"
     }
 
     with open(current_app.config["CHORD_SERVICES"], "r") as f:
         CHORD_SERVICES = [s for s in json.load(f) if not s.get("disabled")]  # Skip disabled services
 
-service_info_cache = {
+    service_info_cache = {
         # Pre-populate service-info cache with data for the current service
         # TODO: investigate if this is necessary
         SERVICE_ARTIFACT: {**SERVICE_INFO, "url": get_service_url(SERVICE_ARTIFACT)},
@@ -74,8 +76,12 @@ service_info_cache = {
 
 
 def get_service(service_artifact):
-    s_url = get_service_url(service_artifact)
+    # special case: requesting info about the current service. Avoids request timeout
+    # when running gunicorn on a single worker
+    if service_artifact == SERVICE_ARTIFACT:
+        return _service_info()
 
+    s_url = get_service_url(service_artifact)
     service_info_url = urljoin(f"{s_url}/", "service-info")
 
     print(f"[{SERVICE_NAME}] Contacting {service_info_url}", flush=True)
@@ -161,25 +167,29 @@ def service_types():
     return jsonify(sorted(set(s["type"] for s in service_info_cache.values())))
 
 
-@application.route("/service-info")
-def service_info():
-    # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
-    production_service_info = {"environment": "prod"}
+def _service_info():
     if not current_app.config["BENTO_DEBUG"]:
-        production_service_info.update(SERVICE_INFO)
-        return jsonify(production_service_info)
+        return SERVICE_INFO
 
-    git_info = {"environment": "dev"}
+    info = {
+        **SERVICE_INFO,
+        "environment": "dev"
+    }
     try:
         res_tag = subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"])
         if res_tag:
-            git_info["git_tag"] = res_tag.decode().rstrip()
+            info["git_tag"] = res_tag.decode().rstrip()
         res_branch = subprocess.check_output(["git", "branch", "--show-current"])
         if res_branch:
-            git_info["git_branch"] = res_branch.decode().rstrip()
-        git_info.update(SERVICE_INFO)
-        return jsonify(git_info)  # updated service info with the git info
+            info["git_branch"] = res_branch.decode().rstrip()
 
     except Exception as e:
         except_name = type(e).__name__
         print("Error in dev-mode retrieving git information", except_name)
+
+    return info  # updated service info with the git info
+
+@application.route("/service-info")
+def service_info():
+    # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
+    return jsonify(_service_info())
