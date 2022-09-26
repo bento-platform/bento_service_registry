@@ -68,12 +68,6 @@ with application.app_context():
     with open(current_app.config["CHORD_SERVICES"], "r") as f:
         CHORD_SERVICES = [s for s in json.load(f) if not s.get("disabled")]  # Skip disabled services
 
-    service_info_cache = {
-        # Pre-populate service-info cache with data for the current service
-        # TODO: investigate if this is necessary
-        SERVICE_ARTIFACT: {**SERVICE_INFO, "url": get_service_url(SERVICE_ARTIFACT)},
-    }
-
 
 def get_service(service_artifact):
     # special case: requesting info about the current service. Avoids request timeout
@@ -147,24 +141,30 @@ def chord_services():
     return jsonify(chord_services_local)
 
 
+def _services():
+    return [s for s in (
+        get_service(s["type"]["artifact"]) for s in CHORD_SERVICES
+        ) if s is not None]
+
+
 @application.route("/services")
 def services():
-    return jsonify([s for s in (get_service(s["type"]["artifact"]) for s in CHORD_SERVICES) if s is not None])
+    return jsonify(_services())
 
 
 @application.route("/services/<string:service_id>")
 def service_by_id(service_id):
-    services_by_id = {s["id"]: s for s in service_info_cache.values()}
+    services_by_id = {s["id"]: s for s in CHORD_SERVICES.values()}
     if service_id not in services_by_id:
         return flask_not_found_error(f"Service with ID {service_id} was not found in registry")
 
-    service_artifact = services_by_id[service_id]["type"].split(":")[1]
+    service_artifact = services_by_id[service_id]["type"]["artifact"]
     return get_service(service_artifact)
 
 
 @application.route("/services/types")
 def service_types():
-    return jsonify(sorted(set(s["type"] for s in service_info_cache.values())))
+    return jsonify(sorted(set(s["type"] for s in _services().values())))
 
 
 def _service_info():
