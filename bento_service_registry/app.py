@@ -48,6 +48,20 @@ def get_service_url(artifact: str):
     return urljoin(current_app.config["CHORD_URL"], current_app.config["URL_PATH_FORMAT"].format(artifact=artifact))
 
 
+def get_chord_services():
+    """
+    Reads the list of services from the chord_services.json file
+    """
+    services = []
+    try:
+        with open(current_app.config["CHORD_SERVICES"], "r") as f:
+            services = [s for s in json.load(f) if not s.get("disabled")]  # Skip disabled services
+    except Exception as e:
+        except_name = type(e).__name__
+        print("Error in retrieving services information from json file.", except_name)
+    return services
+
+
 with application.app_context():
     SERVICE_ID = current_app.config["SERVICE_ID"]
     SERVICE_INFO = {
@@ -65,8 +79,7 @@ with application.app_context():
         "environment": "prod"
     }
 
-    with open(current_app.config["CHORD_SERVICES"], "r") as f:
-        CHORD_SERVICES = [s for s in json.load(f) if not s.get("disabled")]  # Skip disabled services
+    chord_services = get_chord_services()   # Not a constant: can change when a service is updated
 
 
 def get_service(service_artifact):
@@ -131,19 +144,12 @@ def before_first_request_func():
 @application.route("/bento-services")
 @application.route("/chord-services")
 def chord_services():
-    # execute this in here allows to update the version of the services from chord-services
-    try:
-        with open(current_app.config["CHORD_SERVICES"], "r") as f:
-            chord_services_local = [s for s in json.load(f) if not s.get("disabled")]  # Skip disabled services
-    except Exception as e:
-        except_name = type(e).__name__
-        print("Error in dev-mode retrieving chord information", except_name)
-    return jsonify(chord_services_local)
+    jsonify(get_chord_services())
 
 
 def _services():
     return [s for s in (
-        get_service(s["type"]["artifact"]) for s in CHORD_SERVICES
+        get_service(s["type"]["artifact"]) for s in chord_services
         ) if s is not None]
 
 
@@ -154,7 +160,7 @@ def services():
 
 @application.route("/services/<string:service_id>")
 def service_by_id(service_id):
-    services_by_id = {s["id"]: s for s in CHORD_SERVICES.values()}
+    services_by_id = {s["id"]: s for s in chord_services.values()}
     if service_id not in services_by_id:
         return flask_not_found_error(f"Service with ID {service_id} was not found in registry")
 
