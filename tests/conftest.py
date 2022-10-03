@@ -5,6 +5,7 @@ import pytest
 def _setup_env():
     os.environ["CHORD_SERVICES"] = os.path.join(os.path.dirname(__file__), "chord_services.json")
     os.environ["URL_PATH_FORMAT"] = ""  # Mount off of root URL for testing
+    os.environ["CHORD_DEBUG"] = ""
 
 
 @pytest.fixture()
