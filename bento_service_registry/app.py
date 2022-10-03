@@ -82,7 +82,6 @@ with application.app_context():
     chord_services_content = get_chord_services()   # Not a constant: can change when a service is updated
 
 
-
 def get_service(service_artifact):
     # special case: requesting info about the current service. Avoids request timeout
     # when running gunicorn on a single worker
@@ -110,13 +109,13 @@ def get_service(service_artifact):
 
         if r.status_code != 200:
             print(f"[{SERVICE_NAME}] Non-200 status code on {service_artifact}: {r.status_code}\n"
-                    f"                 Content: {r.text}", file=sys.stderr, flush=True)
+                  f"                 Content: {r.text}", file=sys.stderr, flush=True)
 
             # If we have the special case where we got a JWT error from the proxy script, we can safely print out
             # headers for debugging, since the JWT leaked isn't valid anyway.
             if "invalid jwt" in r.text:
                 print(f"                 Encountered auth error, tried to use header: {auth_header}",
-                        file=sys.stderr, flush=True)
+                      file=sys.stderr, flush=True)
 
             return None
 
@@ -195,6 +194,7 @@ def _service_info():
         print("Error in dev-mode retrieving git information", except_name)
 
     return info  # updated service info with the git info
+
 
 @application.route("/service-info")
 def service_info():

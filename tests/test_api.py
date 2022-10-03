@@ -1,6 +1,3 @@
-import json
-
-
 def test_service_info(client, service_info):
     r = client.get("/service-info")
     d = r.get_json()
