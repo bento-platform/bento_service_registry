@@ -6,7 +6,7 @@ def test_service_info(client, service_info):
     d = r.get_json()
     # TODO: Check against service-info schema
     assert r.status_code == 200
-    assert json.dumps(d, sort_keys=True) == json.dumps(service_info, sort_keys=True)
+    assert d == service_info
 
 
 def test_chord_service_list(client):
@@ -22,20 +22,14 @@ def test_service_list(client, service_info):
     d = r.get_json()
     assert r.status_code == 200
     assert len(d) == 1
-    assert json.dumps(d[0], sort_keys=True) == json.dumps({
-        **service_info,
-        "url": "http://127.0.0.1:5000/"
-    }, sort_keys=True)
+    assert d[0] == service_info
 
 
 def test_service_detail(client, service_info):
     r = client.get(f"/services/{service_info['id']}")
     d = r.get_json()
     assert r.status_code == 200
-    assert json.dumps(d, sort_keys=True) == json.dumps({
-        **service_info,
-        "url": "http://127.0.0.1:5000/"
-    }, sort_keys=True)
+    assert d == service_info
 
     r = client.get("/services/does-not-exist")
     assert r.status_code == 404
