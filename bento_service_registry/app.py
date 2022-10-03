@@ -79,7 +79,8 @@ with application.app_context():
         "environment": "prod"
     }
 
-    chord_services = get_chord_services()   # Not a constant: can change when a service is updated
+    chord_services_content = get_chord_services()   # Not a constant: can change when a service is updated
+
 
 
 def get_service(service_artifact):
@@ -149,7 +150,7 @@ def chord_services():
 
 def _services():
     return [s for s in (
-        get_service(s["type"]["artifact"]) for s in chord_services
+        get_service(s["type"]["artifact"]) for s in chord_services_content
         ) if s is not None]
 
 
@@ -160,7 +161,7 @@ def services():
 
 @application.route("/services/<string:service_id>")
 def service_by_id(service_id):
-    services_by_id = {s["id"]: s for s in chord_services.values()}
+    services_by_id = {s["id"]: s for s in chord_services_content.values()}
     if service_id not in services_by_id:
         return flask_not_found_error(f"Service with ID {service_id} was not found in registry")
 
