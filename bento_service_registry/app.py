@@ -145,7 +145,7 @@ def before_first_request_func():
 @application.route("/bento-services")
 @application.route("/chord-services")
 def chord_services():
-    jsonify(get_chord_services())
+    return jsonify(get_chord_services())
 
 
 def _services():
@@ -161,17 +161,17 @@ def services():
 
 @application.route("/services/<string:service_id>")
 def service_by_id(service_id):
-    services_by_id = {s["id"]: s for s in chord_services_content.values()}
+    services_by_id = {s["id"]: s for s in _services()}
     if service_id not in services_by_id:
         return flask_not_found_error(f"Service with ID {service_id} was not found in registry")
 
-    service_artifact = services_by_id[service_id]["type"]["artifact"]
+    service_artifact = services_by_id[service_id]["type"].split(":")[1]
     return get_service(service_artifact)
 
 
 @application.route("/services/types")
 def service_types():
-    return jsonify(sorted(set(s["type"] for s in _services().values())))
+    return jsonify(sorted(set(s["type"] for s in _services())))
 
 
 def _service_info():
