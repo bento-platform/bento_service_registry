@@ -27,6 +27,7 @@ application = Flask(__name__)
 application.config.from_mapping(
     BENTO_DEBUG=os.environ.get("CHORD_DEBUG", os.environ.get("FLASK_ENV", "production")).strip().lower() in (
         "true", "1", "development"),
+    IS_RUNNING_DEV=os.environ.get("FLASK_DEBUG", "false").strip().lower() in ("true", "1"),
     CHORD_SERVICES=os.environ.get("CHORD_SERVICES", os.environ.get("BENTO_SERVICES", "chord_services.json")),
     CHORD_URL=os.environ.get("CHORD_URL", os.environ.get("BENTO_URL", "http://127.0.0.1:5000/")),  # Own node's URL
     CONTACT_TIMEOUT=int(os.environ.get("CONTACT_TIMEOUT", 1)),
@@ -134,6 +135,9 @@ def get_service(service_artifact):
 
 @application.before_first_request
 def before_first_request_func():
+    if current_app.config["IS_RUNNING_DEV"] is False:
+        return
+
     try:
         subprocess.run(["git", "config", "--global", "--add", "safe.directory", str(path_for_git)])
     except Exception as e:
@@ -174,7 +178,7 @@ def service_types():
 
 
 def _service_info():
-    if not current_app.config["BENTO_DEBUG"]:
+    if current_app.config["IS_RUNNING_DEV"] is False:
         return SERVICE_INFO
 
     info = {
