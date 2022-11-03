@@ -56,7 +56,7 @@ path_for_git = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 # application.register_error_handler(NotFound, flask_error_wrap(flask_not_found_error, sr_compat=True))
 
 
-def get_service_url(artifact: str):
+def get_service_url(artifact: str) -> str:
     return urljoin(current_app.config["CHORD_URL"], current_app.config["URL_PATH_FORMAT"].format(artifact=artifact))
 
 
@@ -74,23 +74,23 @@ async def get_chord_services() -> list[dict]:
         return []
 
 
-async def get_service(session, service_artifact) -> Optional[dict]:
+async def get_service(session: aiohttp.ClientSession, service_artifact: str) -> Optional[dict[str, dict]]:
     # special case: requesting info about the current service. Avoids request timeout
     # when running gunicorn on a single worker
     if service_artifact == SERVICE_ARTIFACT:
-        return await _service_info()
+        return await get_service_info()
 
-    s_url = get_service_url(service_artifact)
-    service_info_url = urljoin(f"{s_url}/", "service-info")
+    s_url: str = get_service_url(service_artifact)
+    service_info_url: str = urljoin(f"{s_url}/", "service-info")
 
     print(f"[{SERVICE_NAME}] Contacting {service_info_url}", flush=True)
 
     # Optional Authorization HTTP header to forward to nested requests
     # TODO: Move X-Auth... constant to bento_lib
-    auth_header = request.headers.get("X-Authorization", request.headers.get("Authorization"))
+    auth_header: str = request.headers.get("X-Authorization", request.headers.get("Authorization", ""))
     headers = {"Authorization": auth_header} if auth_header else {}
 
-    service_resp = {}
+    service_resp: dict[str, dict] = {}
 
     try:
         async with session.get(service_info_url, headers=headers, ssl=not current_app.config["BENTO_DEBUG"]) as r:
@@ -136,7 +136,7 @@ async def chord_services():
     return json.jsonify(await get_chord_services())
 
 
-async def _services() -> list[dict]:
+async def get_services() -> list[dict]:
     timeout = aiohttp.ClientTimeout(total=current_app.config["CONTACT_TIMEOUT"])
     async with aiohttp.ClientSession(timeout=timeout) as session:
         return [s for s in asyncio.gather(*[
@@ -147,12 +147,12 @@ async def _services() -> list[dict]:
 
 @application.route("/services")
 async def services():
-    return json.jsonify(await _services())
+    return json.jsonify(await get_services())
 
 
 @application.route("/services/<string:service_id>")
-async def service_by_id(service_id):
-    services_by_id = {s["id"]: s for s in (await _services())}
+async def service_by_id(service_id: str):
+    services_by_id = {s["id"]: s for s in (await get_services())}
     if service_id not in services_by_id:
         return flask_not_found_error(f"Service with ID {service_id} was not found in registry")
 
@@ -165,10 +165,10 @@ async def service_by_id(service_id):
 
 @application.route("/services/types")
 async def service_types():
-    return json.jsonify(sorted(set(s["type"] for s in await _services())))
+    return json.jsonify(sorted(set(s["type"] for s in await get_services())))
 
 
-async def _service_info() -> dict:
+async def get_service_info() -> dict:
     service_id = current_app.config["SERVICE_ID"]
     service_info_dict = {
         "id": service_id,
@@ -221,4 +221,4 @@ async def _service_info() -> dict:
 @application.route("/service-info")
 async def service_info():
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
-    return json.jsonify(await _service_info())
+    return json.jsonify(await get_service_info())
