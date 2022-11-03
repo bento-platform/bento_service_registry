@@ -8,12 +8,12 @@ import os
 import sys
 import subprocess
 
-from bento_lib.responses.flask_errors import (
-    flask_error_wrap,
-    flask_error_wrap_with_traceback,
-    flask_internal_server_error,
-    flask_bad_request_error,
-    flask_not_found_error,
+from bento_lib.responses.quart_errors import (
+    quart_error_wrap,
+    quart_error_wrap_with_traceback,
+    quart_internal_server_error,
+    quart_bad_request_error,
+    quart_not_found_error,
 )
 from quart import Quart, current_app, json, request
 from json.decoder import JSONDecodeError
@@ -47,13 +47,12 @@ application.config.from_mapping(
 
 path_for_git = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-# TODO: Quart errors
 # Generic catch-all
-# application.register_error_handler(Exception, flask_error_wrap_with_traceback(flask_internal_server_error,
-#                                                                               sr_compat=True,
-#                                                                               service_name=SERVICE_NAME))
-# application.register_error_handler(BadRequest, flask_error_wrap(flask_bad_request_error, sr_compat=True))
-# application.register_error_handler(NotFound, flask_error_wrap(flask_not_found_error, sr_compat=True))
+application.register_error_handler(Exception, quart_error_wrap_with_traceback(quart_internal_server_error,
+                                                                              sr_compat=True,
+                                                                              service_name=SERVICE_NAME))
+application.register_error_handler(BadRequest, quart_error_wrap(quart_bad_request_error, sr_compat=True))
+application.register_error_handler(NotFound, quart_error_wrap(quart_not_found_error, sr_compat=True))
 
 
 def get_service_url(artifact: str) -> str:
@@ -154,7 +153,7 @@ async def services():
 async def service_by_id(service_id: str):
     services_by_id = {s["id"]: s for s in (await get_services())}
     if service_id not in services_by_id:
-        return flask_not_found_error(f"Service with ID {service_id} was not found in registry")
+        return quart_not_found_error(f"Service with ID {service_id} was not found in registry")
 
     service_artifact = services_by_id[service_id]["type"].split(":")[1]
 

@@ -23,6 +23,7 @@ aiodns = "^3.0.0"
 aiofiles = "^22.1.0"
 aiohttp = "^3.8.3"
 quart = "^0.18.3"
+bento-lib = {git = "git@github.com:bento-platform/bento_lib.git", rev = "quart-support"}
 
 [tool.poetry.group.dev.dependencies]
 codecov = "^2.1.12"
