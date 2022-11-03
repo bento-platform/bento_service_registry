@@ -69,7 +69,6 @@ async def get_chord_services() -> list[dict]:
     except Exception as e:
         except_name = type(e).__name__
         print("Error in retrieving services information from json file.", except_name)
-    finally:
         return []
 
 
