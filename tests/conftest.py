@@ -1,5 +1,6 @@
 import os
 import pytest
+import pytest_asyncio
 
 
 def _setup_env():
@@ -15,8 +16,13 @@ def client():
     yield application.test_client()
 
 
-@pytest.fixture()
-def service_info():
+async def _service_info_fixt():
+    from bento_service_registry.app import application, get_service_info
+    async with application.app_context():
+        return await get_service_info()
+
+
+@pytest_asyncio.fixture()
+async def service_info():
     _setup_env()
-    from bento_service_registry.app import SERVICE_INFO
-    yield SERVICE_INFO
+    yield _service_info_fixt()

@@ -137,10 +137,11 @@ async def chord_services():
 async def get_services() -> list[dict]:
     timeout = aiohttp.ClientTimeout(total=current_app.config["CONTACT_TIMEOUT"])
     async with aiohttp.ClientSession(timeout=timeout) as session:
-        return [s for s in asyncio.gather(*[
+        service_list: list[Optional[dict]] = await asyncio.gather(*[
             get_service(session, s["type"]["artifact"])
             for s in (await get_chord_services())
-        ]) if s is not None]
+        ])
+    return [s for s in service_list if s is not None]
 
 
 @application.route("/services")
@@ -154,16 +155,21 @@ async def service_by_id(service_id: str):
     if service_id not in services_by_id:
         return quart_not_found_error(f"Service with ID {service_id} was not found in registry")
 
-    service_artifact = services_by_id[service_id]["type"].split(":")[1]
+    service_artifact = services_by_id[service_id]["type"]["artifact"]
 
     timeout = aiohttp.ClientTimeout(total=current_app.config["CONTACT_TIMEOUT"])
     async with aiohttp.ClientSession(timeout=timeout) as session:
-        return get_service(session, service_artifact)
+        return await get_service(session, service_artifact)
 
 
 @application.route("/services/types")
 async def service_types():
-    return json.jsonify(sorted(set(s["type"] for s in await get_services())))
+    types_by_key: dict[str, dict] = {}
+    for st in (s["type"] for s in await get_services()):
+        sk = ":".join(st.values())
+        types_by_key[sk] = st
+
+    return json.jsonify(list(types_by_key.values()))
 
 
 async def get_service_info() -> dict:

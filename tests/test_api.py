@@ -1,40 +1,58 @@
-def test_service_info(client, service_info):
-    r = client.get("/service-info")
-    d = r.get_json()
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_service_info(client, service_info):
+    r = await client.get("/service-info")
+    d = await r.get_json()
     # TODO: Check against service-info schema
     assert r.status_code == 200
-    assert d == service_info
+    assert isinstance(d, dict)
+    assert d == (await service_info)
 
 
-def test_chord_service_list(client):
-    r = client.get("/chord-services")
-    d = r.get_json()
+@pytest.mark.asyncio
+async def test_chord_service_list(client):
+    r = await client.get("/chord-services")
+    d = await r.get_json()
     assert r.status_code == 200
     assert len(d) == 1
     # TODO: Check against some schema
 
 
-def test_service_list(client, service_info):
-    r = client.get("/services")
-    d = r.get_json()
+@pytest.mark.asyncio
+async def test_service_list(client, service_info):
+    service_info = await service_info
+
+    r = await client.get("/services")
+    d = await r.get_json()
+
     assert r.status_code == 200
     assert len(d) == 1
     assert d[0] == service_info
 
 
-def test_service_detail(client, service_info):
-    r = client.get(f"/services/{service_info['id']}")
-    d = r.get_json()
+@pytest.mark.asyncio
+async def test_service_detail(client, service_info):
+    service_info = await service_info
+
+    r = await client.get(f"/services/{service_info['id']}")
+    d = await r.get_json()
+
     assert r.status_code == 200
     assert d == service_info
 
-    r = client.get("/services/does-not-exist")
+    r = await client.get("/services/does-not-exist")
     assert r.status_code == 404
 
 
-def test_service_type_list(client, service_info):
-    r = client.get("/services/types")
-    d = r.get_json()
+@pytest.mark.asyncio
+async def test_service_type_list(client, service_info):
+    service_info = await service_info
+
+    r = await client.get("/services/types")
+    d = await r.get_json()
+
     assert r.status_code == 200
     assert len(d) == 1
     assert d[0] == service_info["type"]
