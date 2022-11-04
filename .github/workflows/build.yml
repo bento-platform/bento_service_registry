@@ -2,6 +2,12 @@ name: Build and push bento_service_registry
 on:
   release:
     types: [ published ]
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
 
 jobs:
   build-push:
