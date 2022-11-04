@@ -1,14 +1,28 @@
 import pytest
 
+# Cannot import anything from bento_service_registry here; has to be within
+# individual tests. Otherwise, we cannot configure the environment variables
+# to our liking for each test.
+
 
 @pytest.mark.asyncio
-async def test_service_info(client, service_info):
+async def test_service_info(client):
     r = await client.get("/service-info")
     d = await r.get_json()
     # TODO: Check against service-info schema
     assert r.status_code == 200
     assert isinstance(d, dict)
-    assert d == (await service_info)
+    assert d["environment"] == "prod"
+
+
+@pytest.mark.asyncio
+async def test_service_info_debug_mode(client_debug_mode):
+    r = await client_debug_mode.get("/service-info")
+    d = await r.get_json()
+    # TODO: Check against service-info schema
+    assert r.status_code == 200
+    assert isinstance(d, dict)
+    assert d["environment"] == "dev"
 
 
 @pytest.mark.asyncio
