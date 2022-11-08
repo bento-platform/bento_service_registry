@@ -7,6 +7,7 @@ import sys
 
 from bento_lib.responses.quart_errors import quart_not_found_error
 from bento_service_registry import __version__
+from datetime import datetime
 from json.decoder import JSONDecodeError
 from quart import Blueprint, current_app, json, request
 from typing import Optional
@@ -47,6 +48,7 @@ async def get_service(session: aiohttp.ClientSession, service_artifact: str) -> 
     auth_header: str = request.headers.get("X-Authorization", request.headers.get("Authorization", ""))
     headers = {"Authorization": auth_header} if auth_header else {}
 
+    dt = datetime.now()
     print(f"[{SERVICE_NAME}] Contacting {service_info_url}{' with bearer token' if auth_header else ''}", flush=True)
 
     service_resp: dict[str, dict] = {}
@@ -70,6 +72,8 @@ async def get_service(session: aiohttp.ClientSession, service_artifact: str) -> 
                 service_resp[service_artifact] = {**(await r.json()), "url": s_url}
             except JSONDecodeError:
                 print(f"[{SERVICE_NAME}] Encountered invalid response from {service_info_url}: {await r.text()}")
+
+            print(f"[{SERVICE_NAME}] {service_info_url}: Took {(datetime.now() - dt).total_seconds():.1f}s", flush=True)
 
     except asyncio.TimeoutError:
         print(f"[{SERVICE_NAME}] Encountered timeout with {service_info_url}", file=sys.stderr, flush=True)
