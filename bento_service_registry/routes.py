@@ -42,12 +42,12 @@ async def get_service(session: aiohttp.ClientSession, service_artifact: str) -> 
     s_url: str = get_service_url(service_artifact)
     service_info_url: str = urljoin(f"{s_url}/", "service-info")
 
-    print(f"[{SERVICE_NAME}] Contacting {service_info_url}", flush=True)
-
     # Optional Authorization HTTP header to forward to nested requests
     # TODO: Move X-Auth... constant to bento_lib
     auth_header: str = request.headers.get("X-Authorization", request.headers.get("Authorization", ""))
     headers = {"Authorization": auth_header} if auth_header else {}
+
+    print(f"[{SERVICE_NAME}] Contacting {service_info_url}{' with bearer token' if auth_header else ''}", flush=True)
 
     service_resp: dict[str, dict] = {}
 
@@ -66,15 +66,19 @@ async def get_service(session: aiohttp.ClientSession, service_artifact: str) -> 
 
                 return None
 
+            try:
+                service_resp[service_artifact] = {**(await r.json()), "url": s_url}
+            except JSONDecodeError:
+                print(f"[{SERVICE_NAME}] Encountered invalid response from {service_info_url}: {await r.text()}")
+                return None
+
     except aiohttp.ServerTimeoutError:
         print(f"[{SERVICE_NAME}] Encountered timeout with {service_info_url}", file=sys.stderr, flush=True)
         return None
 
-    try:
-        service_resp[service_artifact] = {**(await r.json()), "url": s_url}
-    except JSONDecodeError:
-        print(f"[{SERVICE_NAME}] Encountered invalid response from {service_info_url}: {await r.text()}")
-        return None
+    except aiohttp.ClientConnectionError as e:
+        print(f"[{SERVICE_NAME}] Encountered connection error with {service_info_url}: {str(e)}",
+              file=sys.stderr, flush=True)
 
     return service_resp[service_artifact]
 

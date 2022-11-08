@@ -22,8 +22,9 @@ from .routes import service_registry
 def create_app():
     app = Quart(__name__)
     app.config.from_mapping(
-        BENTO_DEBUG=os.environ.get("CHORD_DEBUG", os.environ.get("QUART_ENV", "production")).strip().lower() in (
-            "true", "1", "development"),
+        BENTO_DEBUG=os.environ.get(
+            "CHORD_DEBUG", os.environ.get("BENTO_DEBUG", os.environ.get("QUART_ENV", "production"))
+        ).strip().lower() in ("true", "1", "development"),
         CHORD_SERVICES=os.environ.get("CHORD_SERVICES", os.environ.get("BENTO_SERVICES", "chord_services.json")),
         CHORD_URL=os.environ.get("CHORD_URL", os.environ.get("BENTO_URL", "http://0.0.0.0:5000/")),  # Own node's URL
         CONTACT_TIMEOUT=int(os.environ.get("CONTACT_TIMEOUT", 1)),
