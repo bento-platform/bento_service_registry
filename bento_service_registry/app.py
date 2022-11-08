@@ -27,7 +27,7 @@ def create_app():
         ).strip().lower() in ("true", "1", "development"),
         CHORD_SERVICES=os.environ.get("CHORD_SERVICES", os.environ.get("BENTO_SERVICES", "chord_services.json")),
         CHORD_URL=os.environ.get("CHORD_URL", os.environ.get("BENTO_URL", "http://0.0.0.0:5000/")),  # Own node's URL
-        CONTACT_TIMEOUT=int(os.environ.get("CONTACT_TIMEOUT", 1)),
+        CONTACT_TIMEOUT=int(os.environ.get("CONTACT_TIMEOUT", 10)),
         SERVICE_ID=os.environ.get("SERVICE_ID", ":".join(SERVICE_TYPE.values())),
         URL_PATH_FORMAT=os.environ.get("URL_PATH_FORMAT", "api/{artifact}"),
     )
