@@ -5,7 +5,7 @@ if [ -z "${INTERNAL_PORT}" ]; then
   INTERNAL_PORT=5000
 fi
 
-uvicorn bento_service_registry.app:application \
+hypercorn bento_service_registry.app:application \
   --workers 1 \
-  --host 0.0.0.0 \
-  --port "${INTERNAL_PORT}"
+  --worker_class uvloop \
+  --bind "0.0.0.0:${INTERNAL_PORT}"
