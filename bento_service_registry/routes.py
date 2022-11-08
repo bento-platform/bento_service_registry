@@ -70,17 +70,15 @@ async def get_service(session: aiohttp.ClientSession, service_artifact: str) -> 
                 service_resp[service_artifact] = {**(await r.json()), "url": s_url}
             except JSONDecodeError:
                 print(f"[{SERVICE_NAME}] Encountered invalid response from {service_info_url}: {await r.text()}")
-                return None
 
-    except aiohttp.ServerTimeoutError:
+    except asyncio.TimeoutError:
         print(f"[{SERVICE_NAME}] Encountered timeout with {service_info_url}", file=sys.stderr, flush=True)
-        return None
 
     except aiohttp.ClientConnectionError as e:
         print(f"[{SERVICE_NAME}] Encountered connection error with {service_info_url}: {str(e)}",
               file=sys.stderr, flush=True)
 
-    return service_resp[service_artifact]
+    return service_resp.get(service_artifact)
 
 
 @service_registry.route("/bento-services")
