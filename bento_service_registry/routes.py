@@ -40,6 +40,8 @@ async def get_service(session: aiohttp.ClientSession, service_artifact: str) -> 
     if service_artifact == SERVICE_ARTIFACT:
         return await get_service_info()
 
+    timeout = aiohttp.ClientTimeout(total=current_app.config["CONTACT_TIMEOUT"])
+
     s_url: str = get_service_url(service_artifact)
     service_info_url: str = urljoin(f"{s_url}/", "service-info")
 
@@ -54,7 +56,12 @@ async def get_service(session: aiohttp.ClientSession, service_artifact: str) -> 
     service_resp: dict[str, dict] = {}
 
     try:
-        async with session.get(service_info_url, headers=headers, ssl=not current_app.config["BENTO_DEBUG"]) as r:
+        async with session.get(
+            service_info_url,
+            headers=headers,
+            ssl=not current_app.config["BENTO_DEBUG"],
+            timeout=timeout,
+        ) as r:
             if r.status != 200:
                 r_text = await r.text()
                 print(f"[{SERVICE_NAME}] Non-200 status code on {service_artifact}: {r.status}\n"
@@ -92,11 +99,12 @@ async def chord_services():
 
 
 async def get_services() -> list[dict]:
-    timeout = aiohttp.ClientTimeout(total=current_app.config["CONTACT_TIMEOUT"])
-    async with aiohttp.ClientSession(timeout=timeout) as session:
+    async with aiohttp.ClientSession() as session:
         # noinspection PyTypeChecker
         service_list: list[Optional[dict]] = await asyncio.gather(*[
-            get_service(session, s["type"]["artifact"])
+            # create_task is a bit odd coming from JS, but it allows these requests to run in 'parallel'.
+            # See https://stackoverflow.com/questions/62528272/what-does-asyncio-create-task-do
+            asyncio.create_task(get_service(session, s["type"]["artifact"]))
             for s in (await get_chord_services())
         ])
     return [s for s in service_list if s is not None]
