@@ -102,12 +102,10 @@ async def get_services() -> list[dict]:
     async with aiohttp.ClientSession() as session:
         # noinspection PyTypeChecker
         service_list: list[Optional[dict]] = await asyncio.gather(*[
-            # create_task is a bit odd coming from JS, but it allows these requests to run in 'parallel'.
-            # See https://stackoverflow.com/questions/62528272/what-does-asyncio-create-task-do
-            asyncio.create_task(get_service(session, s["type"]["artifact"]))
+            get_service(session, s["type"]["artifact"])
             for s in (await get_chord_services())
         ])
-    return [s for s in service_list if s is not None]
+        return [s for s in service_list if s is not None]
 
 
 @service_registry.route("/services")
@@ -121,11 +119,8 @@ async def service_by_id(service_id: str):
     if service_id not in services_by_id:
         return quart_not_found_error(f"Service with ID {service_id} was not found in registry")
 
-    service_artifact = services_by_id[service_id]["type"]["artifact"]
-
-    timeout = aiohttp.ClientTimeout(total=current_app.config["CONTACT_TIMEOUT"])
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        return await get_service(session, service_artifact)
+    async with aiohttp.ClientSession() as session:
+        return await get_service(session, services_by_id[service_id]["type"]["artifact"])
 
 
 @service_registry.route("/services/types")
