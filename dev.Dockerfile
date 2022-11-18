@@ -14,10 +14,4 @@ COPY poetry.lock poetry.lock
 # But we don't want the code here, otherwise Docker cache doesn't work well.
 RUN poetry install --no-root
 
-# Include repository in development container builds
-COPY .git .git
-COPY . .
-
-RUN poetry install
-
 CMD [ "sh", "./entrypoint.dev.sh" ]
