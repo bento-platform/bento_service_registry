@@ -1,6 +1,8 @@
 FROM ghcr.io/bento-platform/bento_base_image:python-debian-latest
 
-RUN pip install --no-cache-dir poetry==1.2.2 "hypercorn[uvloop]==0.14.3"
+# Use uvicorn (instead of hypercorn) in production since I've found
+# multiple benchmarks showing it to be faster - David L
+RUN pip install --no-cache-dir poetry==1.2.2 "uvicorn[standard]==0.20.0"
 
 # Backwards-compatible with old BentoV2 container layout
 WORKDIR /service-registry
