@@ -6,17 +6,34 @@
 
 **Author:** David Lougheed, Canadian Centre for Computational Genomics
 
-Prototype implementation of GA4GH's [service registry API](https://github.com/ga4gh-discovery/ga4gh-service-registry/)
+Prototype implementation of the GA4GH [service registry API](https://github.com/ga4gh-discovery/ga4gh-service-registry/)
 for the Bento platform.
+
 
 ## Development
 
-### Running the Service
+### Getting set up
 
-To run the service, use the following command:
+1. Create a virtual environment for the project:
+   ```bash
+   virtualenv -p python3 ./env
+   source env/bin/activate
+   ```
+2. Install `poetry`:
+   ```bash
+   pip install poetry
+   ```
+3. Install project dependencies:
+   ```bash
+   poetry install
+   ```
+
+### Running the service locally
+
+To run the service in development mode, use the following command:
 
 ```bash
-FLASK_DEBUG=True FLASK_APP=bento_service_registry.app flask run
+QUART_ENV=development QUART_APP=bento_service_registry.app quart run
 ```
 
 ### Running tests
@@ -26,6 +43,7 @@ To run tests and linting, run Tox:
 ```bash
 tox
 ```
+
 
 ## Configuration
 

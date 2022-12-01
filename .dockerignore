@@ -1,0 +1,5 @@
+.coverage
+.github
+.mypy_cache
+.tox
+env

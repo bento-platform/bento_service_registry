@@ -2,6 +2,8 @@
 __pycache__
 env/
 .coverage
+.mypy_cache
+.tox
 htmlcov/
 .idea/workspace.xml
 .idea/dataSources*
