@@ -139,7 +139,7 @@ async def get_service_info() -> dict:
         "description": "Service registry for a Bento platform node.",
         "organization": {
             "name": "C3G",
-            "url": "http://www.computationalgenomics.ca"
+            "url": "https://www.computationalgenomics.ca"
         },
         "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
         "version": __version__,
