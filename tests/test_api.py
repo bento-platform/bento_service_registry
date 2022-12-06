@@ -1,8 +1,17 @@
 import pytest
+from bento_service_registry.app import get_bento_debug
 
 # Cannot import anything from bento_service_registry here; has to be within
 # individual tests. Otherwise, we cannot configure the environment variables
 # to our liking for each test.
+
+
+def test_bento_debug_off(client):
+    assert not get_bento_debug()
+
+
+def test_bento_debug_on(client_debug_mode):
+    assert get_bento_debug()
 
 
 @pytest.mark.asyncio
