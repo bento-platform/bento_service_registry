@@ -51,11 +51,14 @@ The following environment variables are used to configure the
 `bento_service_registry` service:
 
 ```bash
-# Debug mode - when this is off, requests made to other services in the 
-# registry will not validate SSL certificates.
+# Debug mode:
 # Setting FLASK_ENV=development will set this to True as well as enabling Flask 
 # debug mode.
 CHORD_DEBUG=False
+
+# When this is off, requests made to other services in the 
+# registry will not validate SSL certificates. Defaults to (not CHORD_DEBUG)
+BENTO_VALIDATE_SSL=True
 
 # Following the chord_services.json schema
 # (https://github.com/c3g/chord_singularity/blob/master/chord_services.schema.json)
