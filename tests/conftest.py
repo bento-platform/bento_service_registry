@@ -25,9 +25,9 @@ def client_debug_mode():
 
 
 async def _service_info_fixt():
-    from bento_service_registry.app import application
+    from bento_service_registry.app import create_app
     from bento_service_registry.routes import get_service_info
-    async with application.app_context():
+    async with create_app().app_context():
         return await get_service_info()
 
 
