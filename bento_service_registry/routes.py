@@ -142,7 +142,7 @@ async def get_service_info() -> GA4GHServiceInfo:
             "name": "C3G",
             "url": "https://www.computationalgenomics.ca"
         },
-        "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
+        "contactUrl": "mailto:info@c3g.ca",
         "version": __version__,
         "url": get_service_url(SERVICE_ARTIFACT),
         "environment": "prod"
