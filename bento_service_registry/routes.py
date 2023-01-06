@@ -56,12 +56,7 @@ async def get_service(session: aiohttp.ClientSession, service_artifact: str) -> 
     service_resp: dict[str, dict] = {}
 
     try:
-        async with session.get(
-            service_info_url,
-            headers=headers,
-            ssl=not current_app.config["BENTO_DEBUG"],
-            timeout=timeout,
-        ) as r:
+        async with session.get(service_info_url, headers=headers, timeout=timeout) as r:
             if r.status != 200:
                 r_text = await r.text()
                 print(f"[{SERVICE_NAME}] Non-200 status code on {service_artifact}: {r.status}\n"
@@ -99,7 +94,8 @@ async def chord_services():
 
 
 async def get_services() -> list[dict]:
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=current_app.config["BENTO_VALIDATE_SSL"])) as session:
         # noinspection PyTypeChecker
         service_list: list[Optional[dict]] = await asyncio.gather(*[
             get_service(session, s["type"]["artifact"])
@@ -119,7 +115,8 @@ async def service_by_id(service_id: str):
     if service_id not in services_by_id:
         return quart_not_found_error(f"Service with ID {service_id} was not found in registry")
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=current_app.config["BENTO_VALIDATE_SSL"])) as session:
         return await get_service(session, services_by_id[service_id]["type"]["artifact"])
 
 
@@ -142,7 +139,7 @@ async def get_service_info() -> dict:
         "description": "Service registry for a Bento platform node.",
         "organization": {
             "name": "C3G",
-            "url": "http://www.computationalgenomics.ca"
+            "url": "https://www.computationalgenomics.ca"
         },
         "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
         "version": __version__,

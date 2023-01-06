@@ -8,13 +8,13 @@ __all__ = [
     "SERVICE_NAME",
 ]
 
-SERVICE_ARTIFACT = "service-registry"
+SERVICE_ARTIFACT: str = "service-registry"
 
 # For exact implementations, this should be org.ga4gh/service-registry/1.0.0.
 # In our case, most of our services diverge or will at some point, so use ca.c3g.bento as the group.
-SERVICE_TYPE = {
+SERVICE_TYPE: dict[str, str] = {
     "group": "ca.c3g.bento",
     "artifact": SERVICE_ARTIFACT,
     "version": __version__,
 }
-SERVICE_NAME = "Bento Service Registry"
+SERVICE_NAME: str = "Bento Service Registry"
