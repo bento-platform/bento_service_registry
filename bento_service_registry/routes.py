@@ -48,7 +48,7 @@ async def get_chord_services() -> dict[str, dict]:
         return {}
 
 
-def get_service_url(artifact: str) -> str:
+async def get_service_url(artifact: str) -> str:
     chord_services_by_artifact = {sv["artifact"]: sv for sv in (await get_chord_services()).values()}
     return chord_services_by_artifact[artifact]["url"]
 
@@ -60,7 +60,7 @@ async def get_service(session: aiohttp.ClientSession, service_artifact: str) -> 
 
     timeout = aiohttp.ClientTimeout(total=current_app.config["CONTACT_TIMEOUT"])
 
-    s_url: str = get_service_url(service_artifact)
+    s_url: str = await get_service_url(service_artifact)
     service_info_url: str = urljoin(f"{s_url}/", "service-info")
 
     # Optional Authorization HTTP header to forward to nested requests
@@ -161,7 +161,7 @@ async def get_service_info() -> GA4GHServiceInfo:
         },
         "contactUrl": "mailto:info@c3g.ca",
         "version": __version__,
-        "url": get_service_url(SERVICE_ARTIFACT),
+        "url": await get_service_url(SERVICE_ARTIFACT),
         "environment": "prod"
     }
 
