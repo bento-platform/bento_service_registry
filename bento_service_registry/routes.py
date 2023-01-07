@@ -49,8 +49,6 @@ async def get_chord_services() -> Dict[str, BentoService]:
     }
 
 
-
-
 async def get_service_url(artifact: str) -> str:
     chord_services_by_artifact = {sv["artifact"]: sv for sv in (await get_chord_services()).values()}
     return chord_services_by_artifact[artifact]["url"]
