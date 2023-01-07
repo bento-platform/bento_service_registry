@@ -31,7 +31,7 @@ def create_app():
     app.config.from_mapping(
         BENTO_DEBUG=get_bento_debug(),
         BENTO_VALIDATE_SSL=not get_bento_debug(),
-        CHORD_SERVICES=os.environ.get("CHORD_SERVICES", os.environ.get("BENTO_SERVICES", "chord_services.json")),
+        BENTO_SERVICES=os.environ.get("CHORD_SERVICES", os.environ.get("BENTO_SERVICES", "chord_services.json")),
         CHORD_URL=os.environ.get("CHORD_URL", os.environ.get("BENTO_URL", "http://0.0.0.0:5000/")),  # Own node's URL
         CONTACT_TIMEOUT=int(os.environ.get("CONTACT_TIMEOUT", 5)),
         SERVICE_ID=os.environ.get("SERVICE_ID", ":".join(SERVICE_TYPE.values())),

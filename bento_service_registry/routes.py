@@ -28,8 +28,9 @@ async def get_chord_services() -> list[dict]:
     Reads the list of services from the chord_services.json file
     """
     try:
-        async with aiofiles.open(current_app.config["CHORD_SERVICES"], "r") as f:
-            return [s for s in json.loads(await f.read()) if not s.get("disabled")]  # Skip disabled services
+        async with aiofiles.open(current_app.config["BENTO_SERVICES"], "r") as f:
+            # Return dictionary of services (id: configuration) Skip disabled services
+            return {sk: sv for sk, sv in json.loads(await f.read()).items() if not sv.get("disabled")}
     except Exception as e:
         except_name = type(e).__name__
         print("Error retrieving information from chord_services JSON file:", except_name)
