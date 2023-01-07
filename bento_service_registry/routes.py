@@ -23,28 +23,32 @@ async def get_chord_services() -> Dict[str, BentoService]:
     """
     Reads the list of services from the chord_services.json file
     """
+
+    # Load bento_services.json data from the filesystem
     try:
         async with aiofiles.open(current_app.config["BENTO_SERVICES"], "r") as f:
             # Return dictionary of services (id: configuration) Skip disabled services
             chord_services_data: Dict[str, BentoService] = json.loads(await f.read())
-            return {
-                sk: BentoService(
-                    **sv,
-                    url=sv["url_template"].format(
-                        BENTO_URL=current_app.config["BENTO_URL"],
-                        BENTO_PUBLIC_URL=current_app.config["BENTO_PUBLIC_URL"],
-                        BENTO_PORTAL_PUBLIC_URL=current_app.config["BENTO_PORTAL_PUBLIC_URL"],
-                        **sv,
-                    ),
-                )  # type: ignore
-                for sk, sv in chord_services_data.items()
-                if not sv.get("disabled")
-            }
-
     except Exception as e:
         except_name = type(e).__name__
-        print("Error retrieving information from chord_services JSON file:", except_name)
+        print("Error retrieving information from chord_services JSON file:", except_name, file=sys.stderr)
         return {}
+
+    return {
+        sk: BentoService(
+            **sv,
+            url=sv["url_template"].format(
+                BENTO_URL=current_app.config["BENTO_URL"],
+                BENTO_PUBLIC_URL=current_app.config["BENTO_PUBLIC_URL"],
+                BENTO_PORTAL_PUBLIC_URL=current_app.config["BENTO_PORTAL_PUBLIC_URL"],
+                **sv,
+            ),
+        )  # type: ignore
+        for sk, sv in chord_services_data.items()
+        if not sv.get("disabled")
+    }
+
+
 
 
 async def get_service_url(artifact: str) -> str:

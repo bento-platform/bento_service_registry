@@ -36,7 +36,6 @@ def create_app():
         BENTO_PORTAL_PUBLIC_URL=os.environ.get("BENTO_PORTAL_PUBLIC_URL", bento_url),
         CONTACT_TIMEOUT=int(os.environ.get("CONTACT_TIMEOUT", 5)),
         SERVICE_ID=os.environ.get("SERVICE_ID", ":".join(SERVICE_TYPE.values())),
-        URL_PATH_FORMAT=os.environ.get("URL_PATH_FORMAT", "api/{artifact}"),
     )
 
     path_for_git = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
