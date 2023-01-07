@@ -10,7 +10,7 @@ from bento_service_registry import __version__
 from datetime import datetime
 from json.decoder import JSONDecodeError
 from quart import Blueprint, current_app, json, request
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 from urllib.parse import urljoin
 
 from .constants import SERVICE_NAME, SERVICE_TYPE, SERVICE_ARTIFACT
@@ -112,11 +112,11 @@ async def chord_services():
     return json.jsonify(await get_chord_services())
 
 
-async def get_services() -> list[dict]:
+async def get_services() -> List[dict]:
     async with aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=current_app.config["BENTO_VALIDATE_SSL"])) as session:
         # noinspection PyTypeChecker
-        service_list: list[Optional[dict]] = await asyncio.gather(*[
+        service_list: List[Optional[dict]] = await asyncio.gather(*[
             get_service(session, s)
             for s in (await get_chord_services()).values()
         ])

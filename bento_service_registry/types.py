@@ -18,4 +18,4 @@ class BentoService(BaseBentoService, total=False):
     disabled: bool
 
 
-BentoServices = dict[str, BentoService]
+BentoServices = Dict[str, BentoService]
