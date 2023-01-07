@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 from bento_service_registry.app import get_bento_debug
 

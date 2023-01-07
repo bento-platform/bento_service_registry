@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from bento_lib.types import GA4GHServiceType
 from bento_service_registry import __version__
 

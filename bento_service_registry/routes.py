@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import aiofiles
 import aiohttp
 import asyncio
@@ -12,7 +10,7 @@ from bento_service_registry import __version__
 from datetime import datetime
 from json.decoder import JSONDecodeError
 from quart import Blueprint, current_app, json, request
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 from urllib.parse import urljoin
 
 from .constants import SERVICE_NAME, SERVICE_TYPE, SERVICE_ARTIFACT
@@ -21,14 +19,14 @@ from .types import BentoService
 service_registry = Blueprint("service_registry", __name__)
 
 
-async def get_chord_services() -> dict[str, BentoService]:
+async def get_chord_services() -> Dict[str, BentoService]:
     """
     Reads the list of services from the chord_services.json file
     """
     try:
         async with aiofiles.open(current_app.config["BENTO_SERVICES"], "r") as f:
             # Return dictionary of services (id: configuration) Skip disabled services
-            chord_services_data: dict[str, BentoService] = json.loads(await f.read())
+            chord_services_data: Dict[str, BentoService] = json.loads(await f.read())
             return {
                 sk: BentoService(
                     **sv,
@@ -54,7 +52,7 @@ async def get_service_url(artifact: str) -> str:
     return chord_services_by_artifact[artifact]["url"]
 
 
-async def get_service(session: aiohttp.ClientSession, service_metadata: BentoService) -> Optional[dict[str, dict]]:
+async def get_service(session: aiohttp.ClientSession, service_metadata: BentoService) -> Optional[Dict[str, dict]]:
     artifact = service_metadata["artifact"]
 
     # special case: requesting info about the current service. Skip networking / self-connect.
@@ -74,7 +72,7 @@ async def get_service(session: aiohttp.ClientSession, service_metadata: BentoSer
     dt = datetime.now()
     print(f"[{SERVICE_NAME}] Contacting {service_info_url}{' with bearer token' if auth_header else ''}", flush=True)
 
-    service_resp: dict[str, dict] = {}
+    service_resp: Dict[str, dict] = {}
 
     try:
         async with session.get(service_info_url, headers=headers, timeout=timeout) as r:
@@ -151,7 +149,7 @@ async def service_by_id(service_id: str) -> Union[quart.Response, dict]:
 
 @service_registry.route("/services/types")
 async def service_types() -> quart.Response:
-    types_by_key: dict[str, dict] = {}
+    types_by_key: Dict[str, dict] = {}
     for st in (s["type"] for s in await get_services()):
         sk = ":".join(st.values())
         types_by_key[sk] = st
