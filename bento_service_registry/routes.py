@@ -5,13 +5,14 @@ import aiohttp
 import asyncio
 import sys
 
-from bento_lib.responses.quart_errors import quart_not_found_error
+import quart
+from bento_lib.responses.quart_errors import quart_not_found_error, quart_internal_server_error
 from bento_lib.types import GA4GHServiceInfo
 from bento_service_registry import __version__
 from datetime import datetime
 from json.decoder import JSONDecodeError
 from quart import Blueprint, current_app, json, request
-from typing import Optional
+from typing import Optional, Union
 from urllib.parse import urljoin
 
 from .constants import SERVICE_NAME, SERVICE_TYPE, SERVICE_ARTIFACT
@@ -20,7 +21,7 @@ from .types import BentoService
 service_registry = Blueprint("service_registry", __name__)
 
 
-async def get_chord_services() -> dict[str, dict]:
+async def get_chord_services() -> dict[str, BentoService]:
     """
     Reads the list of services from the chord_services.json file
     """
@@ -29,15 +30,15 @@ async def get_chord_services() -> dict[str, dict]:
             # Return dictionary of services (id: configuration) Skip disabled services
             chord_services_data: dict[str, BentoService] = json.loads(await f.read())
             return {
-                sk: {
+                sk: BentoService(
                     **sv,
-                    "url": sv["url_template"].format(
+                    url=sv["url_template"].format(
                         BENTO_URL=current_app.config["BENTO_URL"],
                         BENTO_PUBLIC_URL=current_app.config["BENTO_PUBLIC_URL"],
                         BENTO_PORTAL_PUBLIC_URL=current_app.config["BENTO_PORTAL_PUBLIC_URL"],
                         **sv,
                     ),
-                }
+                )  # type: ignore
                 for sk, sv in chord_services_data.items()
                 if not sv.get("disabled")
             }
@@ -53,14 +54,16 @@ async def get_service_url(artifact: str) -> str:
     return chord_services_by_artifact[artifact]["url"]
 
 
-async def get_service(session: aiohttp.ClientSession, service_artifact: str) -> Optional[dict[str, dict]]:
+async def get_service(session: aiohttp.ClientSession, service_metadata: BentoService) -> Optional[dict[str, dict]]:
+    artifact = service_metadata["artifact"]
+
     # special case: requesting info about the current service. Skip networking / self-connect.
-    if service_artifact == SERVICE_ARTIFACT:
+    if artifact == SERVICE_ARTIFACT:
         return await get_service_info()
 
     timeout = aiohttp.ClientTimeout(total=current_app.config["CONTACT_TIMEOUT"])
 
-    s_url: str = await get_service_url(service_artifact)
+    s_url: str = service_metadata["url"]
     service_info_url: str = urljoin(f"{s_url}/", "service-info")
 
     # Optional Authorization HTTP header to forward to nested requests
@@ -77,7 +80,7 @@ async def get_service(session: aiohttp.ClientSession, service_artifact: str) -> 
         async with session.get(service_info_url, headers=headers, timeout=timeout) as r:
             if r.status != 200:
                 r_text = await r.text()
-                print(f"[{SERVICE_NAME}] Non-200 status code on {service_artifact}: {r.status}\n"
+                print(f"[{SERVICE_NAME}] Non-200 status code on {artifact}: {r.status}\n"
                       f"                 Content: {r_text}", file=sys.stderr, flush=True)
 
                 # If we have the special case where we got a JWT error from the proxy script, we can safely print out
@@ -89,7 +92,7 @@ async def get_service(session: aiohttp.ClientSession, service_artifact: str) -> 
                 return None
 
             try:
-                service_resp[service_artifact] = {**(await r.json()), "url": s_url}
+                service_resp[artifact] = {**(await r.json()), "url": s_url}
             except JSONDecodeError:
                 print(f"[{SERVICE_NAME}] Encountered invalid response from {service_info_url}: {await r.text()}")
 
@@ -102,7 +105,7 @@ async def get_service(session: aiohttp.ClientSession, service_artifact: str) -> 
         print(f"[{SERVICE_NAME}] Encountered connection error with {service_info_url}: {str(e)}",
               file=sys.stderr, flush=True)
 
-    return service_resp.get(service_artifact)
+    return service_resp.get(artifact)
 
 
 @service_registry.route("/bento-services")
@@ -116,8 +119,8 @@ async def get_services() -> list[dict]:
             connector=aiohttp.TCPConnector(ssl=current_app.config["BENTO_VALIDATE_SSL"])) as session:
         # noinspection PyTypeChecker
         service_list: list[Optional[dict]] = await asyncio.gather(*[
-            get_service(session, s["type"]["artifact"])
-            for s in (await get_chord_services())
+            get_service(session, s)
+            for s in (await get_chord_services()).values()
         ])
         return [s for s in service_list if s is not None]
 
@@ -128,18 +131,26 @@ async def services():
 
 
 @service_registry.route("/services/<string:service_id>")
-async def service_by_id(service_id: str):
+async def service_by_id(service_id: str) -> Union[quart.Response, dict]:
     services_by_id = {s["id"]: s for s in (await get_services())}
+    chord_services_by_artifact = await get_chord_services()
+
     if service_id not in services_by_id:
         return quart_not_found_error(f"Service with ID {service_id} was not found in registry")
 
     async with aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=current_app.config["BENTO_VALIDATE_SSL"])) as session:
-        return await get_service(session, services_by_id[service_id]["type"]["artifact"])
+        service_data = await get_service(
+            session, chord_services_by_artifact[services_by_id[service_id]["type"]["artifact"]])
+
+        if service_data is None:
+            return quart_internal_server_error(f"An internal error was encountered with service with ID {service_id}")
+
+        return service_data
 
 
 @service_registry.route("/services/types")
-async def service_types():
+async def service_types() -> quart.Response:
     types_by_key: dict[str, dict] = {}
     for st in (s["type"] for s in await get_services()):
         sk = ":".join(st.values())
@@ -197,6 +208,6 @@ async def get_service_info() -> GA4GHServiceInfo:
 
 
 @service_registry.route("/service-info")
-async def service_info():
+async def service_info() -> quart.Response:
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
     return json.jsonify(await get_service_info())
