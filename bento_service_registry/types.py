@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Dict, TypedDict
 
 
 # TODO: py3.10(?): optional TypedDict props
