@@ -1,6 +1,7 @@
 {
   "service-registry": {
-    "url_template": "{BENTO_URL}api/{id}",
+    "artifact": "service-registry",
+    "url_template": "{BENTO_URL}api/{artifact}",
     "repository": "https://github.com/bento-platform/bento_service_registry",
     "data_service": false
   }

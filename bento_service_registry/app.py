@@ -28,11 +28,14 @@ def get_bento_debug():
 
 def create_app():
     app = Quart(__name__)
+    bento_url = os.environ.get("CHORD_URL", os.environ.get("BENTO_URL", "http://0.0.0.0:5000/"))  # Own node's URL
     app.config.from_mapping(
         BENTO_DEBUG=get_bento_debug(),
         BENTO_VALIDATE_SSL=not get_bento_debug(),
         BENTO_SERVICES=os.environ.get("CHORD_SERVICES", os.environ.get("BENTO_SERVICES", "chord_services.json")),
-        CHORD_URL=os.environ.get("CHORD_URL", os.environ.get("BENTO_URL", "http://0.0.0.0:5000/")),  # Own node's URL
+        BENTO_URL=bento_url,
+        BENTO_PUBLIC_URL=os.environ.get("BENTO_PUBLIC_URL", bento_url),
+        BENTO_PORTAL_PUBLIC_URL=os.environ.get("BENTO_PORTAL_PUBLIC_URL", bento_url),
         CONTACT_TIMEOUT=int(os.environ.get("CONTACT_TIMEOUT", 5)),
         SERVICE_ID=os.environ.get("SERVICE_ID", ":".join(SERVICE_TYPE.values())),
         URL_PATH_FORMAT=os.environ.get("URL_PATH_FORMAT", "api/{artifact}"),
