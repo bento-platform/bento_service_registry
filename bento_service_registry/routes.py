@@ -6,6 +6,7 @@ import asyncio
 import sys
 
 from bento_lib.responses.quart_errors import quart_not_found_error
+from bento_lib.types import GA4GHServiceInfo
 from bento_service_registry import __version__
 from datetime import datetime
 from json.decoder import JSONDecodeError
@@ -130,9 +131,9 @@ async def service_types():
     return json.jsonify(list(types_by_key.values()))
 
 
-async def get_service_info() -> dict:
+async def get_service_info() -> GA4GHServiceInfo:
     service_id = current_app.config["SERVICE_ID"]
-    service_info_dict = {
+    service_info_dict: GA4GHServiceInfo = {
         "id": service_id,
         "name": SERVICE_NAME,  # TODO: Should be globally unique?
         "type": SERVICE_TYPE,
@@ -141,7 +142,7 @@ async def get_service_info() -> dict:
             "name": "C3G",
             "url": "https://www.computationalgenomics.ca"
         },
-        "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
+        "contactUrl": "mailto:info@c3g.ca",
         "version": __version__,
         "url": get_service_url(SERVICE_ARTIFACT),
         "environment": "prod"
@@ -150,10 +151,8 @@ async def get_service_info() -> dict:
     if not current_app.config["BENTO_DEBUG"]:
         return service_info_dict
 
-    info = {
-        **service_info_dict,
-        "environment": "dev"
-    }
+    service_info_dict["environment"] = "dev"
+
     try:
         git_proc = await asyncio.create_subprocess_exec(
             "git", "describe", "--tags", "--abbrev=0",
@@ -162,7 +161,7 @@ async def get_service_info() -> dict:
         )
         res_tag, _ = await git_proc.communicate()
         if res_tag:
-            info["git_tag"] = res_tag.decode().rstrip()
+            service_info_dict["git_tag"] = res_tag.decode().rstrip()
 
         git_proc = await asyncio.create_subprocess_exec(
             "git", "branch", "--show-current",
@@ -171,13 +170,13 @@ async def get_service_info() -> dict:
         )
         res_branch, _ = await git_proc.communicate()
         if res_branch:
-            info["git_branch"] = res_branch.decode().rstrip()
+            service_info_dict["git_branch"] = res_branch.decode().rstrip()
 
     except Exception as e:
         except_name = type(e).__name__
         print("Error in dev-mode retrieving git information", except_name)
 
-    return info  # updated service info with the git info
+    return service_info_dict  # updated service info with the git info
 
 
 @service_registry.route("/service-info")
