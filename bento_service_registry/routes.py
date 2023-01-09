@@ -93,8 +93,9 @@ async def get_service(session: aiohttp.ClientSession, service_metadata: BentoSer
 
             try:
                 service_resp[artifact] = {**(await r.json()), "url": s_url}
-            except (JSONDecodeError, aiohttp.ContentTypeError):
-                print(f"[{SERVICE_NAME}] Encountered invalid response from {service_info_url}: {await r.text()}")
+            except (JSONDecodeError, aiohttp.ContentTypeError) as e:
+                print(f"[{SERVICE_NAME}] Encountered invalid response ({str(e)}) from {service_info_url}: "
+                      f"{await r.text()}")
 
             print(f"[{SERVICE_NAME}] {service_info_url}: Took {(datetime.now() - dt).total_seconds():.1f}s", flush=True)
 
