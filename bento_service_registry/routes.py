@@ -13,13 +13,13 @@ from quart import Blueprint, current_app, json, request
 from typing import Dict, List, Optional, Union
 from urllib.parse import urljoin
 
-from .constants import SERVICE_NAME, SERVICE_TYPE, SERVICE_ARTIFACT
+from .constants import BENTO_SERVICE_KIND, SERVICE_NAME, SERVICE_TYPE, SERVICE_ARTIFACT
 from .types import BentoService
 
 service_registry = Blueprint("service_registry", __name__)
 
 
-async def get_chord_services() -> Dict[str, BentoService]:
+async def get_chord_services_by_compose_id() -> Dict[str, BentoService]:
     """
     Reads the list of services from the chord_services.json file
     """
@@ -49,16 +49,19 @@ async def get_chord_services() -> Dict[str, BentoService]:
     }
 
 
-async def get_service_url(artifact: str) -> str:
-    chord_services_by_artifact = {sv["artifact"]: sv for sv in (await get_chord_services()).values()}
-    return chord_services_by_artifact[artifact]["url"]
+async def get_chord_services_by_kind() -> Dict[str, BentoService]:
+    return {sv["service_kind"]: sv for sv in (await get_chord_services_by_compose_id()).values()}
+
+
+async def get_service_url(service_kind: str) -> str:
+    return (await get_chord_services_by_kind())[service_kind]["url"]
 
 
 async def get_service(session: aiohttp.ClientSession, service_metadata: BentoService) -> Optional[Dict[str, dict]]:
-    artifact = service_metadata["artifact"]
+    kind = service_metadata["service_kind"]
 
     # special case: requesting info about the current service. Skip networking / self-connect.
-    if artifact == SERVICE_ARTIFACT:
+    if kind == BENTO_SERVICE_KIND:
         return await get_service_info()
 
     timeout = aiohttp.ClientTimeout(total=current_app.config["CONTACT_TIMEOUT"])
@@ -80,7 +83,7 @@ async def get_service(session: aiohttp.ClientSession, service_metadata: BentoSer
         async with session.get(service_info_url, headers=headers, timeout=timeout) as r:
             if r.status != 200:
                 r_text = await r.text()
-                print(f"[{SERVICE_NAME}] Non-200 status code on {artifact}: {r.status}\n"
+                print(f"[{SERVICE_NAME}] Non-200 status code on {kind}: {r.status}\n"
                       f"                 Content: {r_text}", file=sys.stderr, flush=True)
 
                 # If we have the special case where we got a JWT error from the proxy script, we can safely print out
@@ -92,7 +95,7 @@ async def get_service(session: aiohttp.ClientSession, service_metadata: BentoSer
                 return None
 
             try:
-                service_resp[artifact] = {**(await r.json()), "url": s_url}
+                service_resp[kind] = {**(await r.json()), "url": s_url}
             except (JSONDecodeError, aiohttp.ContentTypeError) as e:
                 print(f"[{SERVICE_NAME}] Encountered invalid response ({str(e)}) from {service_info_url}: "
                       f"{await r.text()}")
@@ -106,13 +109,13 @@ async def get_service(session: aiohttp.ClientSession, service_metadata: BentoSer
         print(f"[{SERVICE_NAME}] Encountered connection error with {service_info_url}: {str(e)}",
               file=sys.stderr, flush=True)
 
-    return service_resp.get(artifact)
+    return service_resp.get(kind)
 
 
 @service_registry.route("/bento-services")
 @service_registry.route("/chord-services")
 async def chord_services():
-    return json.jsonify(await get_chord_services())
+    return json.jsonify(await get_chord_services_by_compose_id())
 
 
 async def get_services() -> List[dict]:
@@ -121,7 +124,7 @@ async def get_services() -> List[dict]:
         # noinspection PyTypeChecker
         service_list: List[Optional[dict]] = await asyncio.gather(*[
             get_service(session, s)
-            for s in (await get_chord_services()).values()
+            for s in (await get_chord_services_by_compose_id()).values()
         ])
         return [s for s in service_list if s is not None]
 
@@ -134,15 +137,18 @@ async def services():
 @service_registry.route("/services/<string:service_id>")
 async def service_by_id(service_id: str) -> Union[quart.Response, dict]:
     services_by_id = {s["id"]: s for s in (await get_services())}
-    chord_services_by_artifact = await get_chord_services()
+    chord_services_by_kind = await get_chord_services_by_kind()
 
     if service_id not in services_by_id:
         return quart_not_found_error(f"Service with ID {service_id} was not found in registry")
 
+    svc = services_by_id[service_id]
+
     async with aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=current_app.config["BENTO_VALIDATE_SSL"])) as session:
+        # Get service by bento.serviceKind, using type.artifact as a backup for legacy reasons
         service_data = await get_service(
-            session, chord_services_by_artifact[services_by_id[service_id]["type"]["artifact"]])
+            session, chord_services_by_kind[svc.get("bento", {}).get("serviceKind", svc["type"]["artifact"])])
 
         if service_data is None:
             return quart_internal_server_error(f"An internal error was encountered with service with ID {service_id}")
@@ -174,7 +180,10 @@ async def get_service_info() -> GA4GHServiceInfo:
         "contactUrl": "mailto:info@c3g.ca",
         "version": __version__,
         "url": await get_service_url(SERVICE_ARTIFACT),
-        "environment": "prod"
+        "environment": "prod",
+        "bento": {
+            "serviceKind": BENTO_SERVICE_KIND,
+        },
     }
 
     if not current_app.config["BENTO_DEBUG"]:
@@ -190,7 +199,9 @@ async def get_service_info() -> GA4GHServiceInfo:
         )
         res_tag, _ = await git_proc.communicate()
         if res_tag:
-            service_info_dict["git_tag"] = res_tag.decode().rstrip()
+            res_tag_str: str = res_tag.decode().rstrip()
+            service_info_dict["git_tag"] = res_tag_str
+            service_info_dict["bento"]["gitTag"] = res_tag_str
 
         git_proc = await asyncio.create_subprocess_exec(
             "git", "branch", "--show-current",
@@ -199,7 +210,9 @@ async def get_service_info() -> GA4GHServiceInfo:
         )
         res_branch, _ = await git_proc.communicate()
         if res_branch:
-            service_info_dict["git_branch"] = res_branch.decode().rstrip()
+            res_branch_str: str = res_branch.decode().rstrip()
+            service_info_dict["git_branch"] = res_branch_str
+            service_info_dict["bento"]["gitBranch"] = res_branch_str
 
     except Exception as e:
         except_name = type(e).__name__

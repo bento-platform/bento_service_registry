@@ -12,7 +12,7 @@ class BaseBentoService(TypedDict):
 
 # optional props for chord_services.json entries
 class BentoService(BaseBentoService, total=False):
-    artifact: str
+    service_kind: str
     url: str
     manageable_tables: bool
     disabled: bool
