@@ -166,6 +166,13 @@ async def service_types() -> quart.Response:
     return json.jsonify(list(types_by_key.values()))
 
 
+async def _git_stdout(*args) -> str:
+    git_proc = await asyncio.create_subprocess_exec(
+        "git", *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+    res, _ = await git_proc.communicate()
+    return res.decode().rstrip()
+
+
 async def get_service_info() -> GA4GHServiceInfo:
     service_id = current_app.config["SERVICE_ID"]
     service_info_dict: GA4GHServiceInfo = {
@@ -192,27 +199,15 @@ async def get_service_info() -> GA4GHServiceInfo:
     service_info_dict["environment"] = "dev"
 
     try:
-        git_proc = await asyncio.create_subprocess_exec(
-            "git", "describe", "--tags", "--abbrev=0",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        res_tag, _ = await git_proc.communicate()
-        if res_tag:
-            res_tag_str: str = res_tag.decode().rstrip()
-            service_info_dict["git_tag"] = res_tag_str
-            service_info_dict["bento"]["gitTag"] = res_tag_str
-
-        git_proc = await asyncio.create_subprocess_exec(
-            "git", "branch", "--show-current",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        res_branch, _ = await git_proc.communicate()
-        if res_branch:
-            res_branch_str: str = res_branch.decode().rstrip()
-            service_info_dict["git_branch"] = res_branch_str
-            service_info_dict["bento"]["gitBranch"] = res_branch_str
+        if res_tag := await _git_stdout("describe", "--tags", "--abbrev=0"):
+            # noinspection PyTypeChecker
+            service_info_dict["bento"]["gitTag"] = res_tag
+        if res_branch := await _git_stdout("branch", "--show-current"):
+            # noinspection PyTypeChecker
+            service_info_dict["bento"]["gitBranch"] = res_branch
+        if res_commit := await _git_stdout("rev-parse", "HEAD"):
+            # noinspection PyTypeChecker
+            service_info_dict["bento"]["gitCommit"] = res_commit
 
     except Exception as e:
         except_name = type(e).__name__
