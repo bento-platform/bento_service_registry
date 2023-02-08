@@ -36,7 +36,7 @@ def create_app():
     app.config.from_mapping(
         BENTO_DEBUG=bento_debug,
         BENTO_VALIDATE_SSL=validate_ssl,
-        BENTO_SERVICES=os.environ.get("CHORD_SERVICES", os.environ.get("BENTO_SERVICES", "chord_services.json")),
+        BENTO_SERVICES=os.environ.get("CHORD_SERVICES", os.environ.get("BENTO_SERVICES", "bento_services.json")),
         BENTO_URL=bento_url,
         BENTO_PUBLIC_URL=os.environ.get("BENTO_PUBLIC_URL", bento_url),
         BENTO_PORTAL_PUBLIC_URL=os.environ.get("BENTO_PORTAL_PUBLIC_URL", bento_url),
