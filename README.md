@@ -60,12 +60,10 @@ CHORD_DEBUG=False
 # registry will not validate SSL certificates. Defaults to (not CHORD_DEBUG)
 BENTO_VALIDATE_SSL=True
 
-# Following the chord_services.json schema
-# (https://github.com/c3g/chord_singularity/blob/master/chord_services.schema.json)
-# A list of services on a single domain which are registered in the service
-# registry instance.
-# BENTO_SERVICES also works here.
-CHORD_SERVICES=chord_services.json
+# Following the bento_services.json 'schema'
+# A JSON object of services registered in the service registry instance.
+# CHORD_SERVICES also works here.
+BENTO_SERVICES=bento_services.json
 
 # Common URL base for all services
 # BENTO_URL also works here.
