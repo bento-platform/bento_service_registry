@@ -5,9 +5,9 @@ import pytest_asyncio
 
 
 def _setup_env(debug_mode: bool = False):
-    os.environ["CHORD_SERVICES"] = os.path.join(os.path.dirname(__file__), "chord_services.json")
+    os.environ["BENTO_SERVICES"] = os.path.join(os.path.dirname(__file__), "bento_services.json")
     os.environ["URL_PATH_FORMAT"] = ""  # Mount off of root URL for testing
-    os.environ["CHORD_DEBUG"] = "true" if debug_mode else ""
+    os.environ["BENTO_DEBUG"] = "true" if debug_mode else ""
 
 
 @pytest.fixture()

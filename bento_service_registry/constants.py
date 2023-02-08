@@ -1,14 +1,14 @@
-from __future__ import annotations
-
 from bento_lib.types import GA4GHServiceType
 from bento_service_registry import __version__
 
 __all__ = [
+    "BENTO_SERVICE_KIND",
     "SERVICE_ARTIFACT",
     "SERVICE_TYPE",
     "SERVICE_NAME",
 ]
 
+BENTO_SERVICE_KIND: str = "service-registry"
 SERVICE_ARTIFACT: str = "service-registry"
 
 # For exact implementations, this should be org.ga4gh/service-registry/1.0.0.
