@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 
-if [ -z "${INTERNAL_PORT}" ]; then
+if [[ -z "${INTERNAL_PORT}" ]]; then
   # Set default internal port to 5000
   INTERNAL_PORT=5000
 fi

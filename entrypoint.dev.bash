@@ -1,9 +1,12 @@
-#!/bin/sh
+#!/bin/bash
+
+# Set .gitconfig for development
+/set_gitconfig.bash
 
 export QUART_ENV=development
 export QUART_APP=bento_service_registry.app:application
 
-if [ -z "${INTERNAL_PORT}" ]; then
+if [[ -z "${INTERNAL_PORT}" ]]; then
   # Set default internal port to 5000
   export INTERNAL_PORT=5000
 fi

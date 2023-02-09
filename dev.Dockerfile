@@ -14,4 +14,4 @@ COPY poetry.lock poetry.lock
 # But we don't want the code here, otherwise Docker cache doesn't work well.
 RUN poetry install --no-root
 
-CMD [ "sh", "./entrypoint.dev.sh" ]
+CMD [ "/bin/bash", "./entrypoint.dev.bash" ]
