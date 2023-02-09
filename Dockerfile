@@ -19,9 +19,9 @@ RUN poetry install --without dev --no-root
 # Manually copy only what's relevant
 # (Don't use .dockerignore, which allows us to have development containers too)
 COPY bento_service_registry bento_service_registry
-COPY entrypoint.sh entrypoint.sh
-COPY LICENSE LICENSE
-COPY README.md README.md
+COPY entrypoint.bash .
+COPY LICENSE .
+COPY README.md .
 
 # Install the module itself, locally (similar to `pip install -e .`)
 RUN poetry install --without dev
