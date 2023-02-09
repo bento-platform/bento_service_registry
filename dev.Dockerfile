@@ -14,4 +14,8 @@ COPY poetry.lock .
 # But we don't want the code here, otherwise Docker cache doesn't work well.
 RUN poetry install --no-root
 
+# Copy entrypoint in so we have something to start with, even though it'll get
+# overwritten by volume mount.
+COPY entrypoint.dev.bash .
+
 CMD [ "/bin/bash", "./entrypoint.dev.bash" ]
