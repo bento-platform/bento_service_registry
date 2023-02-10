@@ -96,7 +96,10 @@ async def get_service(session: aiohttp.ClientSession, service_metadata: BentoSer
 
             try:
                 service_resp[kind] = {**(await r.json()), "url": s_url}
-            except (JSONDecodeError, aiohttp.ContentTypeError) as e:
+            except (JSONDecodeError, aiohttp.ContentTypeError, TypeError) as e:
+                # JSONDecodeError can happen if the JSON is invalid
+                # ContentTypeError can happen if the Content-Type is not application/json
+                # TypeError can happen if None is received
                 print(f"[{SERVICE_NAME}] Encountered invalid response ({str(e)}) from {service_info_url}: "
                       f"{await r.text()}")
 
