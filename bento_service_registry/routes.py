@@ -125,7 +125,7 @@ async def get_service(session: aiohttp.ClientSession, service_metadata: BentoSer
 
 @service_registry.route("/bento-services")
 @service_registry.route("/chord-services")
-async def chord_services():
+async def bento_services():
     return json.jsonify(await get_bento_services_by_compose_id())
 
 
