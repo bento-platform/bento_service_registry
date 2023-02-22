@@ -20,6 +20,7 @@ RUN poetry install --without dev --no-root
 # (Don't use .dockerignore, which allows us to have development containers too)
 COPY bento_service_registry bento_service_registry
 COPY entrypoint.bash .
+COPY run.bash .
 COPY LICENSE .
 COPY README.md .
 
