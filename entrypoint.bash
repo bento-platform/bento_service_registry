@@ -1,12 +1,12 @@
 #!/bin/bash
 
-if [[ -z "${INTERNAL_PORT}" ]]; then
-  # Set default internal port to 5000
-  INTERNAL_PORT=5000
-fi
+cd /service-registry || exit
 
-uvicorn bento_service_registry.app:application \
-  --workers 1 \
-  --loop uvloop \
-  --host 0.0.0.0 \
-  --port "${INTERNAL_PORT}"
+# Create bento_user + home
+source /create_service_user.bash
+
+# Fix permissions on /service-registry and /env
+chown -R bento_user:bento_user /service-registry /env
+
+# Drop into bento_user from root and execute the CMD specified for the image
+exec gosu bento_user "$@"
