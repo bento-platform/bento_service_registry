@@ -1,15 +1,15 @@
-FROM ghcr.io/bento-platform/bento_base_image:python-debian-latest
+FROM ghcr.io/bento-platform/bento_base_image:python-debian-2023.02.27
 
 # Use uvicorn (instead of hypercorn) in production since I've found
 # multiple benchmarks showing it to be faster - David L
-RUN pip install --no-cache-dir poetry==1.3.2 "uvicorn[standard]==0.20.0"
+RUN pip install --no-cache-dir "uvicorn[standard]==0.20.0"
 
 # Backwards-compatible with old BentoV2 container layout
 WORKDIR /service-registry
 
-COPY pyproject.toml pyproject.toml
-COPY poetry.toml poetry.toml
-COPY poetry.lock poetry.lock
+COPY pyproject.toml .
+COPY poetry.toml .
+COPY poetry.lock .
 
 # Install production dependencies
 # Without --no-root, we get errors related to the code not being copied in yet.
@@ -20,10 +20,12 @@ RUN poetry install --without dev --no-root
 # (Don't use .dockerignore, which allows us to have development containers too)
 COPY bento_service_registry bento_service_registry
 COPY entrypoint.bash .
+COPY run.bash .
 COPY LICENSE .
 COPY README.md .
 
 # Install the module itself, locally (similar to `pip install -e .`)
 RUN poetry install --without dev
 
-CMD [ "/bin/bash", "./entrypoint.bash" ]
+ENTRYPOINT [ "/bin/bash", "./entrypoint.bash" ]
+CMD [ "/bin/bash", "./run.bash" ]

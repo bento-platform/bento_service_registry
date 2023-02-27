@@ -1,6 +1,9 @@
-FROM ghcr.io/bento-platform/bento_base_image:python-debian-latest
+FROM ghcr.io/bento-platform/bento_base_image:python-debian-2023.02.27
 
-RUN pip install --no-cache-dir poetry==1.3.2 "uvicorn[standard]==0.20.0"
+SHELL ["/bin/bash", "-c"]
+
+RUN source /env/bin/activate && \
+    pip install --no-cache-dir "uvicorn[standard]==0.20.0"
 
 # Backwards-compatible with old BentoV2 container layout
 WORKDIR /service-registry
@@ -12,10 +15,12 @@ COPY poetry.lock .
 # Install production + development dependencies
 # Without --no-root, we get errors related to the code not being copied in yet.
 # But we don't want the code here, otherwise Docker cache doesn't work well.
-RUN poetry install --no-root
+RUN source /env/bin/activate && poetry install --no-root
 
-# Copy entrypoint in so we have something to start with, even though it'll get
+# Copy entrypoint and runner script in, so we have something to start with - even though it'll get
 # overwritten by volume mount.
-COPY entrypoint.dev.bash .
+COPY entrypoint.bash .
+COPY run.dev.bash .
 
-CMD [ "/bin/bash", "./entrypoint.dev.bash" ]
+ENTRYPOINT [ "/bin/bash", "./entrypoint.bash" ]
+CMD [ "/bin/bash", "./run.dev.bash" ]
