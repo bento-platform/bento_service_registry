@@ -1,15 +1,17 @@
 #!/bin/bash
 
-# Set .gitconfig for development
-/set_gitconfig.bash
+# Update dependencies and install module locally
+/poetry_user_install_dev.bash
 
-export QUART_ENV=development
-export QUART_APP=bento_service_registry.app:application
+export QUART_ENV='development'
+export QUART_APP='bento_service_registry.app:application'
 
-if [[ -z "${INTERNAL_PORT}" ]]; then
-  # Set default internal port to 5000
-  export INTERNAL_PORT=5000
-fi
+# Set default internal port to 5000
+: "${INTERNAL_PORT:=5000}"
 
-python -m poetry install
-python -m debugpy --listen 0.0.0.0:5678 -m quart run --host 0.0.0.0 --port "${INTERNAL_PORT}"
+# Set default debugger port to debugpy default
+: "${DEBUGGER_PORT:=5678}"
+
+python -m debugpy --listen "0.0.0.0:${DEBUGGER_PORT}" -m quart run \
+  --host 0.0.0.0 \
+  --port "${INTERNAL_PORT}"

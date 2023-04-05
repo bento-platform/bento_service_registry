@@ -1,9 +1,7 @@
 #!/bin/bash
 
-if [[ -z "${INTERNAL_PORT}" ]]; then
-  # Set default internal port to 5000
-  INTERNAL_PORT=5000
-fi
+# Set default internal port to 5000
+: "${INTERNAL_PORT:=5000}"
 
 uvicorn bento_service_registry.app:application \
   --workers 1 \
