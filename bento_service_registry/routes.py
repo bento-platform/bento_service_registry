@@ -152,7 +152,17 @@ async def services(config: ConfigDependency, logger: LoggerDependency, request: 
     return await get_services(config, logger, request)
 
 
-@service_registry.get("/services/<string:service_id>", dependencies=[authz_middleware.dep_public_endpoint()])
+@service_registry.get("/services/types", dependencies=[authz_middleware.dep_public_endpoint()])
+async def service_types(config: ConfigDependency, logger: LoggerDependency, request: Request) -> list[dict]:
+    types_by_key: dict[str, dict] = {}
+    for st in (s["type"] for s in await get_services(config, logger, request)):
+        sk = ":".join(st.values())
+        types_by_key[sk] = st
+
+    return list(types_by_key.values())
+
+
+@service_registry.get("/services/{service_id}", dependencies=[authz_middleware.dep_public_endpoint()])
 async def service_by_id(
     config: ConfigDependency,
     logger: LoggerDependency,
@@ -183,16 +193,6 @@ async def service_by_id(
                 f"An internal error was encountered with service with ID {service_id}")
 
         return service_data
-
-
-@service_registry.get("/services/types", dependencies=[authz_middleware.dep_public_endpoint()])
-async def service_types(config: ConfigDependency, logger: LoggerDependency, request: Request) -> list[dict]:
-    types_by_key: dict[str, dict] = {}
-    for st in (s["type"] for s in await get_services(config, logger, request)):
-        sk = ":".join(st.values())
-        types_by_key[sk] = st
-
-    return list(types_by_key.values())
 
 
 async def _git_stdout(*args) -> str:
