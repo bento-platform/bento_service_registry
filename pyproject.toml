@@ -22,7 +22,7 @@ python = "^3.10.0"
 aiodns = "^3.0.0"
 aiofiles = "^23.1.0"
 aiohttp = "^3.8.3"
-bento-lib = {version = "7.0.0a2", extras = ["fastapi"]}
+bento-lib = {version = "7.0.0a3", extras = ["fastapi"]}
 fastapi = "^0.97.0"
 pydantic = "^1.10.9"
 
