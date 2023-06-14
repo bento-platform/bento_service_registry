@@ -1,7 +1,7 @@
 from fastapi import Depends
 from functools import lru_cache
 from pathlib import Path
-from pydantic import BaseSettings
+from pydantic import BaseConfig, BaseSettings
 from typing import Annotated, Any, Literal
 
 from .constants import SERVICE_TYPE
@@ -36,7 +36,7 @@ class Config(BaseSettings):
 
     log_level: Literal["debug", "info", "warning", "error"] = "debug"
 
-    class Config:
+    class Config(BaseConfig):
         # Make parent Config instances hashable + immutable
         allow_mutation = False
         frozen = True
