@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "bento_service_registry"
-version = "0.11.2"
+version = "0.12.0"
 description = "An implementation of GA4GH Service Registry API for the Bento platform."
 authors = ["David Lougheed <david.lougheed@mail.mcgill.ca>"]
 readme = "README.md"
