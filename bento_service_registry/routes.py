@@ -1,60 +1,64 @@
 import aiofiles
 import aiohttp
 import asyncio
-import sys
+import json
+import logging
 
-import quart
-from bento_lib.responses.quart_errors import quart_not_found_error, quart_internal_server_error
 from bento_lib.types import GA4GHServiceInfo
 from bento_service_registry import __version__
 from datetime import datetime
+from fastapi import APIRouter, HTTPException, Request, status
 from json.decoder import JSONDecodeError
-from quart import Blueprint, current_app, json, request
-from typing import Dict, List, Optional, Union
 from urllib.parse import urljoin
 
+from .config import Config, ConfigDependency
 from .constants import BENTO_SERVICE_KIND, SERVICE_NAME, SERVICE_TYPE, SERVICE_ARTIFACT
+from .logger import LoggerDependency
 from .types import BentoService
 
-service_registry = Blueprint("service_registry", __name__)
+__all__ = [
+    "service_registry",
+]
+
+service_registry = APIRouter()
 
 
-async def get_bento_services_by_compose_id() -> Dict[str, BentoService]:
+async def get_bento_services_by_compose_id(config: Config, logger: logging.Logger) -> dict[str, BentoService]:
     """
     Reads the list of services from the chord_services.json file
     """
 
     # Load bento_services.json data from the filesystem
     try:
-        async with aiofiles.open(current_app.config["BENTO_SERVICES"], "r") as f:
+        async with aiofiles.open(config.bento_services, "r") as f:
             # Return dictionary of services (id: configuration) Skip disabled services
-            chord_services_data: Dict[str, BentoService] = json.loads(await f.read())
+            bento_services_data: dict[str, BentoService] = json.loads(await f.read())
     except Exception as e:
         except_name = type(e).__name__
-        print("Error retrieving information from chord_services JSON file:", except_name, file=sys.stderr)
+        logger.error(f"Error retrieving information from chord_services JSON file: {except_name}")
         return {}
 
     return {
         sk: BentoService(
             **sv,
             url=sv["url_template"].format(
-                BENTO_URL=current_app.config["BENTO_URL"],
-                BENTO_PUBLIC_URL=current_app.config["BENTO_PUBLIC_URL"],
-                BENTO_PORTAL_PUBLIC_URL=current_app.config["BENTO_PORTAL_PUBLIC_URL"],
+                BENTO_URL=config.bento_url,
+                BENTO_PUBLIC_URL=config.bento_public_url,
+                BENTO_PORTAL_PUBLIC_URL=config.bento_portal_public_url,
                 **sv,
             ),
         )  # type: ignore
-        for sk, sv in chord_services_data.items()
+        for sk, sv in bento_services_data.items()
         # Filter out disabled entries and entries without service_kind, which may be external/'transparent'
         # - e.g., the gateway.
         if not sv.get("disabled") and sv.get("service_kind")
     }
 
 
-async def get_bento_services_by_kind() -> Dict[str, BentoService]:
-    services_by_kind: Dict[str, BentoService] = {}
+async def get_bento_services_by_kind(config: Config, logger: logging.Logger) -> dict[str, BentoService]:
+    services_by_kind: dict[str, BentoService] = {}
 
-    for sv in (await get_bento_services_by_compose_id()).values():
+    for sv in (await get_bento_services_by_compose_id(config, logger)).values():
         # Disabled entries are already filtered out by get_bento_services_by_compose_id
         # Filter out entries without service_kind, which may be external/'transparent' - e.g., the gateway.
         if sk := sv.get("service_kind"):
@@ -63,20 +67,24 @@ async def get_bento_services_by_kind() -> Dict[str, BentoService]:
     return services_by_kind
 
 
-async def get_service_url(service_kind: str) -> str:
-    return (await get_bento_services_by_kind())[service_kind]["url"]
+async def get_service_url(config: Config, logger: logging.Logger, service_kind: str) -> str:
+    return (await get_bento_services_by_kind(config, logger))[service_kind]["url"]
 
 
-async def get_service(session: aiohttp.ClientSession, service_metadata: BentoService) -> Optional[Dict[str, dict]]:
-    logger = current_app.logger
-
+async def get_service(
+    config: Config,
+    logger: logging.Logger,
+    request: Request,
+    session: aiohttp.ClientSession,
+    service_metadata: BentoService,
+) -> dict[str, dict] | None:
     kind = service_metadata["service_kind"]
 
     # special case: requesting info about the current service. Skip networking / self-connect.
     if kind == BENTO_SERVICE_KIND:
-        return await get_service_info()
+        return await get_service_info(config, logger)
 
-    timeout = aiohttp.ClientTimeout(total=current_app.config["CONTACT_TIMEOUT"])
+    timeout = aiohttp.ClientTimeout(total=config.contact_timeout)
 
     s_url: str = service_metadata["url"]
     service_info_url: str = urljoin(f"{s_url}/", "service-info")
@@ -89,7 +97,7 @@ async def get_service(session: aiohttp.ClientSession, service_metadata: BentoSer
     dt = datetime.now()
     logger.info(f"Contacting {service_info_url}{' with bearer token' if auth_header else ''}")
 
-    service_resp: Dict[str, dict] = {}
+    service_resp: dict[str, dict] = {}
 
     try:
         async with session.get(service_info_url, headers=headers, timeout=timeout) as r:
@@ -123,58 +131,67 @@ async def get_service(session: aiohttp.ClientSession, service_metadata: BentoSer
     return service_resp.get(kind)
 
 
-@service_registry.route("/bento-services")
-@service_registry.route("/chord-services")
-async def bento_services():
-    return json.jsonify(await get_bento_services_by_compose_id())
+@service_registry.get("/bento-services")
+async def bento_services(config: ConfigDependency, logger: LoggerDependency):
+    return await get_bento_services_by_compose_id(config, logger)
 
 
-async def get_services() -> List[dict]:
-    async with aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(ssl=current_app.config["BENTO_VALIDATE_SSL"])) as session:
+async def get_services(config: Config, logger: logging.Logger, request: Request) -> list[dict]:
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=config.bento_validate_ssl)) as session:
         # noinspection PyTypeChecker
-        service_list: List[Optional[dict]] = await asyncio.gather(*[
-            get_service(session, s)
-            for s in (await get_bento_services_by_compose_id()).values()
+        service_list: list[dict | None] = await asyncio.gather(*[
+            get_service(config, logger, request, session, s)
+            for s in (await get_bento_services_by_compose_id(config, logger)).values()
         ])
         return [s for s in service_list if s is not None]
 
 
-@service_registry.route("/services")
-async def services():
-    return json.jsonify(await get_services())
+@service_registry.get("/services")
+async def services(config: ConfigDependency, logger: LoggerDependency, request: Request):
+    return await get_services(config, logger, request)
 
 
-@service_registry.route("/services/<string:service_id>")
-async def service_by_id(service_id: str) -> Union[quart.Response, dict]:
-    services_by_id = {s["id"]: s for s in (await get_services())}
-    chord_services_by_kind = await get_bento_services_by_kind()
+@service_registry.get("/services/<string:service_id>")
+async def service_by_id(
+    config: ConfigDependency,
+    logger: LoggerDependency,
+    request: Request,
+    service_id: str,
+):
+    services_by_id = {s["id"]: s for s in (await get_services(config, logger, request))}
+    bento_services_by_kind = await get_bento_services_by_kind(config, logger)
 
     if service_id not in services_by_id:
-        return quart_not_found_error(f"Service with ID {service_id} was not found in registry")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Service with ID {service_id} was not found in registry")
 
     svc = services_by_id[service_id]
 
-    async with aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(ssl=current_app.config["BENTO_VALIDATE_SSL"])) as session:
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=config.bento_validate_ssl)) as session:
         # Get service by bento.serviceKind, using type.artifact as a backup for legacy reasons
         service_data = await get_service(
-            session, chord_services_by_kind[svc.get("bento", {}).get("serviceKind", svc["type"]["artifact"])])
+            config,
+            logger,
+            request,
+            session,
+            bento_services_by_kind[svc.get("bento", {}).get("serviceKind", svc["type"]["artifact"])],
+        )
 
         if service_data is None:
-            return quart_internal_server_error(f"An internal error was encountered with service with ID {service_id}")
+            raise HTTPException(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                f"An internal error was encountered with service with ID {service_id}")
 
         return service_data
 
 
-@service_registry.route("/services/types")
-async def service_types() -> quart.Response:
-    types_by_key: Dict[str, dict] = {}
-    for st in (s["type"] for s in await get_services()):
+@service_registry.get("/services/types")
+async def service_types(config: ConfigDependency, logger: LoggerDependency, request: Request) -> list[dict]:
+    types_by_key: dict[str, dict] = {}
+    for st in (s["type"] for s in await get_services(config, logger, request)):
         sk = ":".join(st.values())
         types_by_key[sk] = st
 
-    return json.jsonify(list(types_by_key.values()))
+    return list(types_by_key.values())
 
 
 async def _git_stdout(*args) -> str:
@@ -184,8 +201,8 @@ async def _git_stdout(*args) -> str:
     return res.decode().rstrip()
 
 
-async def get_service_info() -> GA4GHServiceInfo:
-    service_id = current_app.config["SERVICE_ID"]
+async def get_service_info(config: Config, logger: logging.Logger) -> GA4GHServiceInfo:
+    service_id = config.service_id
     service_info_dict: GA4GHServiceInfo = {
         "id": service_id,
         "name": SERVICE_NAME,  # TODO: Should be globally unique?
@@ -197,14 +214,14 @@ async def get_service_info() -> GA4GHServiceInfo:
         },
         "contactUrl": "mailto:info@c3g.ca",
         "version": __version__,
-        "url": await get_service_url(SERVICE_ARTIFACT),
+        "url": await get_service_url(config, logger, SERVICE_ARTIFACT),
         "environment": "prod",
         "bento": {
             "serviceKind": BENTO_SERVICE_KIND,
         },
     }
 
-    if not current_app.config["BENTO_DEBUG"]:
+    if not config.bento_debug:
         return service_info_dict
 
     service_info_dict["environment"] = "dev"
@@ -222,12 +239,12 @@ async def get_service_info() -> GA4GHServiceInfo:
 
     except Exception as e:
         except_name = type(e).__name__
-        current_app.logger.error(f"Error in dev mode retrieving git information: {str(except_name)}")
+        logger.error(f"Error in dev mode retrieving git information: {str(except_name)}")
 
     return service_info_dict  # updated service info with the git info
 
 
-@service_registry.route("/service-info")
-async def service_info() -> quart.Response:
+@service_registry.get("/service-info")
+async def service_info(config: ConfigDependency, logger: LoggerDependency):
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
-    return json.jsonify(await get_service_info())
+    return await get_service_info(config, logger)
