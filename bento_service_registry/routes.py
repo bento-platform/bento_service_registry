@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Request, status
 from json.decoder import JSONDecodeError
 from urllib.parse import urljoin
 
+from .authz import authz_middleware
 from .config import Config, ConfigDependency
 from .constants import BENTO_SERVICE_KIND, SERVICE_NAME, SERVICE_TYPE, SERVICE_ARTIFACT
 from .logger import LoggerDependency
@@ -131,7 +132,7 @@ async def get_service(
     return service_resp.get(kind)
 
 
-@service_registry.get("/bento-services")
+@service_registry.get("/bento-services", dependencies=[authz_middleware.dep_public_endpoint()])
 async def bento_services(config: ConfigDependency, logger: LoggerDependency):
     return await get_bento_services_by_compose_id(config, logger)
 
@@ -146,12 +147,12 @@ async def get_services(config: Config, logger: logging.Logger, request: Request)
         return [s for s in service_list if s is not None]
 
 
-@service_registry.get("/services")
+@service_registry.get("/services", dependencies=[authz_middleware.dep_public_endpoint()])
 async def services(config: ConfigDependency, logger: LoggerDependency, request: Request):
     return await get_services(config, logger, request)
 
 
-@service_registry.get("/services/<string:service_id>")
+@service_registry.get("/services/<string:service_id>", dependencies=[authz_middleware.dep_public_endpoint()])
 async def service_by_id(
     config: ConfigDependency,
     logger: LoggerDependency,
@@ -184,7 +185,7 @@ async def service_by_id(
         return service_data
 
 
-@service_registry.get("/services/types")
+@service_registry.get("/services/types", dependencies=[authz_middleware.dep_public_endpoint()])
 async def service_types(config: ConfigDependency, logger: LoggerDependency, request: Request) -> list[dict]:
     types_by_key: dict[str, dict] = {}
     for st in (s["type"] for s in await get_services(config, logger, request)):
@@ -244,7 +245,7 @@ async def get_service_info(config: Config, logger: logging.Logger) -> GA4GHServi
     return service_info_dict  # updated service info with the git info
 
 
-@service_registry.get("/service-info")
+@service_registry.get("/service-info", dependencies=[authz_middleware.dep_public_endpoint()])
 async def service_info(config: ConfigDependency, logger: LoggerDependency):
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
     return await get_service_info(config, logger)
