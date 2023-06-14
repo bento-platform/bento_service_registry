@@ -4,11 +4,16 @@ from pathlib import Path
 from pydantic import BaseSettings
 from typing import Annotated, Any, Literal
 
+from .constants import SERVICE_TYPE
+
 __all__ = [
     "Config",
     "get_config",
     "ConfigDependency",
 ]
+
+
+DEFAULT_SERVICE_ID = ":".join(list(SERVICE_TYPE.values())[:2])
 
 
 class Config(BaseSettings):
@@ -22,7 +27,7 @@ class Config(BaseSettings):
     bento_public_url: str
     bento_portal_public_url: str
 
-    service_id: str
+    service_id: str = DEFAULT_SERVICE_ID
 
     bento_authz_service_url: str  # Bento authorization service base URL
     authz_enabled: bool = True
