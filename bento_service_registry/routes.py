@@ -36,7 +36,7 @@ async def get_bento_services_by_compose_id(config: Config, logger: logging.Logge
             bento_services_data: dict[str, BentoService] = json.loads(await f.read())
     except Exception as e:
         except_name = type(e).__name__
-        logger.error(f"Error retrieving information from chord_services JSON file: {except_name}")
+        logger.error(f"Error retrieving information from bento_services JSON file: {except_name}")
         return {}
 
     return {
