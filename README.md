@@ -14,16 +14,11 @@ for the Bento platform.
 
 ### Getting set up
 
-1. Create a virtual environment for the project:
-   ```bash
-   virtualenv -p python3 ./env
-   source env/bin/activate
-   ```
-2. Install `poetry`:
+1. Install `poetry`:
    ```bash
    pip install poetry
    ```
-3. Install project dependencies:
+2. Install project dependencies in a Poetry-managed virtual environment:
    ```bash
    poetry install
    ```
@@ -33,7 +28,11 @@ for the Bento platform.
 To run the service in development mode, use the following command:
 
 ```bash
-QUART_ENV=development QUART_APP=bento_service_registry.app quart run
+poetry run python -m debugpy --listen "0.0.0.0:5678" -m uvicorn \
+  "bento_service_registry.app:application" \
+  --host 0.0.0.0 \
+  --port "${INTERNAL_PORT}" \
+  --reload
 ```
 
 ### Running tests
@@ -41,7 +40,7 @@ QUART_ENV=development QUART_APP=bento_service_registry.app quart run
 To run tests and linting, run Tox:
 
 ```bash
-tox
+poetry run tox
 ```
 
 
@@ -52,13 +51,11 @@ The following environment variables are used to configure the
 
 ```bash
 # Debug mode:
-# Setting FLASK_ENV=development will set this to True as well as enabling Flask 
-# debug mode.
-CHORD_DEBUG=False
+BENTO_DEBUG=false
 
 # When this is off, requests made to other services in the 
-# registry will not validate SSL certificates. Defaults to (not CHORD_DEBUG)
-BENTO_VALIDATE_SSL=True
+# registry will not validate SSL certificates.
+BENTO_VALIDATE_SSL=true
 
 # Following the bento_services.json 'schema'
 # A JSON object of services registered in the service registry instance.
@@ -69,14 +66,21 @@ BENTO_SERVICES=bento_services.json
 # CHORD_URL also works here.
 BENTO_URL=http://127.0.0.1:5000/
 BENTO_PUBLIC_URL=${BENTO_URL}  # By default, maps to the same URL - can be used for interpolation
+BENTO_PORTAL_PUBLIC_URL=${BENTO_URL}  # By default, maps to the same URL - can be used for interpolation
 
 # Timeout, in seconds (integers only), for contacting services from the JSON
-CONTACT_TIMEOUT=1
+CONTACT_TIMEOUT=5
 
 # Service ID for the /service-info endpoint
-SERVICE_ID=ca.c3g.bento:{current version}
+SERVICE_ID=ca.c3g.bento:service-registry
 
-# Python path template for the services, off of the CHORD_URL value
-# Currently only supports artifact-based paths
-URL_PATH_FORMAT=api/{artifact}
+# CORS origins for all requests
+CORS_ORIGINS=*
+
+# Log level (debug/info/warning/error)
+LOG_LEVEL=debug
+
+# Authorization settings
+BENTO_AUTHZ_SERVICE_URL=http://bentov2.local/api/authorization
+AUTHZ_ENABLED=true
 ```
