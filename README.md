@@ -75,7 +75,7 @@ CONTACT_TIMEOUT=5
 SERVICE_ID=ca.c3g.bento:service-registry
 
 # CORS origins for all requests
-CORS_ORIGINS=*
+CORS_ORIGINS='*'
 
 # Log level (debug/info/warning/error)
 LOG_LEVEL=debug
