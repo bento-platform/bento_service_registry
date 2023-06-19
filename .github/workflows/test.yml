@@ -21,6 +21,6 @@ jobs:
       - name: Install Python dependencies
         run: python -m poetry install
       - name: Test
-        run: python -m pytest -svv --cov=bento_service_registry --cov-branch
+        run: python -m poetry run pytest -svv --cov=bento_service_registry --cov-branch
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

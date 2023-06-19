@@ -18,6 +18,6 @@ jobs:
       - name: Install dependencies
         run: python -m poetry install --only dev
       - name: Run linter
-        run: python -m flake8 ./bento_service_registry ./tests
+        run: python -m poetry run flake8 ./bento_service_registry ./tests
       - name: Run type checker
-        run: python -m mypy bento_service_registry
+        run: python -m poetry run mypy bento_service_registry
