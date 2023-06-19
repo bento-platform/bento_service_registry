@@ -26,7 +26,7 @@ service_registry = APIRouter()
 
 async def get_bento_services_by_compose_id(config: Config, logger: logging.Logger) -> dict[str, BentoService]:
     """
-    Reads the list of services from the chord_services.json file
+    Reads the list of services from the bento_services.json file
     """
 
     # Load bento_services.json data from the filesystem
@@ -36,7 +36,7 @@ async def get_bento_services_by_compose_id(config: Config, logger: logging.Logge
             bento_services_data: dict[str, BentoService] = json.loads(await f.read())
     except Exception as e:
         except_name = type(e).__name__
-        logger.error(f"Error retrieving information from bento_services JSON file: {except_name}")
+        logger.error(f"Error retrieving information from bento_services JSON file: {except_name} - {str(e)}")
         return {}
 
     return {
