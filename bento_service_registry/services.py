@@ -3,7 +3,7 @@ import asyncio
 import logging
 
 from datetime import datetime
-from fastapi import Request
+from fastapi import Request, status
 from json import JSONDecodeError
 from urllib.parse import urljoin
 
@@ -53,7 +53,7 @@ async def get_service(
 
     try:
         async with session.get(service_info_url, headers=headers) as r:
-            if r.status != 200:
+            if r.status != status.HTTP_200_OK:
                 r_text = await r.text()
                 logger.error(f"Non-200 status code on {kind}: {r.status}  Content: {r_text}")
 
