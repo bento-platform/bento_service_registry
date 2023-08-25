@@ -2,10 +2,9 @@ from fastapi import APIRouter, HTTPException, Request, status
 
 from .authz import authz_middleware
 from .bento_services_json import BentoServicesByKindDependency, BentoServicesByComposeIDDependency
-from .config import ConfigDependency
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
-from .service_info import get_service_info
+from .service_info import ServiceInfoDependency
 from .services import get_service, ServicesDependency
 
 __all__ = [
@@ -38,10 +37,10 @@ async def service_types(services_tuple: ServicesDependency) -> list[dict]:
 @service_registry.get("/services/{service_id}", dependencies=[authz_middleware.dep_public_endpoint()])
 async def service_by_id(
     bento_services_by_kind: BentoServicesByKindDependency,
-    config: ConfigDependency,
     http_session: HTTPSessionDependency,
     logger: LoggerDependency,
     request: Request,
+    service_info_contents: ServiceInfoDependency,
     services_tuple: ServicesDependency,
     service_id: str,
 ):
@@ -54,11 +53,10 @@ async def service_by_id(
 
     # Get service by bento.serviceKind, using type.artifact as a backup for legacy reasons
     service_data = await get_service(
-        bento_services_by_kind,
-        config,
         logger,
         request,
         http_session,
+        service_info_contents,
         bento_services_by_kind[svc.get("bento", {}).get("serviceKind", svc["type"]["artifact"])],
     )
 
@@ -71,10 +69,6 @@ async def service_by_id(
 
 
 @service_registry.get("/service-info", dependencies=[authz_middleware.dep_public_endpoint()])
-async def service_info(
-    bento_services_by_kind: BentoServicesByKindDependency,
-    config: ConfigDependency,
-    logger: LoggerDependency,
-):
+async def service_info(service_info_contents: ServiceInfoDependency):
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
-    return await get_service_info(bento_services_by_kind, config, logger)
+    return service_info_contents

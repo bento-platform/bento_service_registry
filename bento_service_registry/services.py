@@ -2,46 +2,41 @@ import aiohttp
 import asyncio
 import logging
 
+from bento_lib.types import GA4GHServiceInfo
 from datetime import datetime
 from fastapi import Depends, Request, status
 from json import JSONDecodeError
 from typing import Annotated
 from urllib.parse import urljoin
 
-from .bento_services_json import BentoServicesByKind, BentoServicesByKindDependency
-from .config import Config, ConfigDependency
+from .bento_services_json import BentoServicesByKindDependency
 from .constants import BENTO_SERVICE_KIND
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
-from .service_info import get_service_info
+from .service_info import ServiceInfoDependency
 from .types import BentoService
 
 
 __all__ = [
-    "get_service_url",
     "get_service",
     "get_services",
     "ServicesDependency",
 ]
 
 
-def get_service_url(services_by_kind: BentoServicesByKind, service_kind: str) -> str:
-    return services_by_kind[service_kind]["url"]
-
-
 async def get_service(
-    bento_services_by_kind: BentoServicesByKind,
-    config: Config,
     logger: logging.Logger,
     request: Request,
     session: aiohttp.ClientSession,
+    service_info: GA4GHServiceInfo,
     service_metadata: BentoService,
 ) -> dict[str, dict] | None:
     kind = service_metadata["service_kind"]
 
-    # special case: requesting info about the current service. Skip networking / self-connect.
+    # special case: requesting info about the current service. Skip networking / self-connect;
+    # instead, return pre-calculated /service-info contents.
     if kind == BENTO_SERVICE_KIND:
-        return await get_service_info(bento_services_by_kind, config, logger)
+        return service_info
 
     s_url: str = service_metadata["url"]
     service_info_url: str = urljoin(f"{s_url}/", "service-info")
@@ -89,14 +84,14 @@ async def get_service(
 
 async def get_services(
     bento_services_by_kind: BentoServicesByKindDependency,
-    config: ConfigDependency,
     http_session: HTTPSessionDependency,
     logger: LoggerDependency,
     request: Request,
+    service_info: ServiceInfoDependency,
 ) -> tuple[dict, ...]:
     # noinspection PyTypeChecker
     service_list: list[dict | None] = await asyncio.gather(*[
-        get_service(bento_services_by_kind, config, logger, request, http_session, s)
+        get_service(logger, request, http_session, service_info, s)
         for s in bento_services_by_kind.values()
     ])
     return tuple(s for s in service_list if s is not None)

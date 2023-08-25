@@ -52,7 +52,7 @@ def client_debug_mode():
 
 async def _service_info_fixt():
     from bento_service_registry.bento_services_json import get_bento_services_by_compose_id, get_bento_services_by_kind
-    from bento_service_registry.routes import get_service_info
+    from bento_service_registry.service_info import get_service_info
 
     config = get_config()
     sbci = await get_bento_services_by_compose_id(config)

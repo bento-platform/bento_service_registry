@@ -3,17 +3,14 @@ import asyncio
 import itertools
 import logging
 
-from fastapi import Depends, Request, status
+from fastapi import Depends, status
 from typing import Annotated
 from urllib.parse import urljoin
 
-from .bento_services_json import BentoServicesByKindDependency
-from .config import ConfigDependency
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
 from .models import DataTypeDefinitionWithServiceURL
-from .services import get_services
-
+from .services import ServicesDependency
 
 __all__ = [
     "DataTypesTuple",
@@ -51,18 +48,13 @@ async def get_data_types_from_service(
 
 
 async def get_data_types(
-    bento_services_by_kind: BentoServicesByKindDependency,
-    config: ConfigDependency,
     http_session: HTTPSessionDependency,
     logger: LoggerDependency,
-    request: Request,
+    services_tuple: ServicesDependency,
 ) -> DataTypesTuple:
     logger.debug("Collecting data types from data services")
 
-    data_services = [
-        s for s in await get_services(bento_services_by_kind, config, http_session, logger, request)
-        if s.get("bento", {}).get("dataService", False)
-    ]
+    data_services = [s for s in services_tuple if s.get("bento", {}).get("dataService", False)]
 
     logger.debug(f"Found {len(data_services)} data services")
 
