@@ -4,6 +4,7 @@ import itertools
 import logging
 
 from fastapi import Depends, status
+from pydantic import ValidationError
 from typing import Annotated
 from urllib.parse import urljoin
 
@@ -33,18 +34,26 @@ async def get_data_types_from_service(
         logger.error(f"Encountered a service missing a URL: {service}")
         return ()
 
-    service_url_with_trailing_slash: str = service_url.rstrip("/") + "/"
+    service_url_norm: str = service_url.rstrip("/") + "/"
 
-    async with http_session.get(urljoin(service_url_with_trailing_slash, "data-types")) as res:
+    async with http_session.get(urljoin(service_url_norm, "data-types")) as res:
         if res.status != status.HTTP_200_OK:
             logger.error(
                 f"Got non-200 response from data type service ({service_url=}): {res.status=}; body={await res.json()}")
             return ()
 
-        return tuple(
-            DataTypeDefinitionWithServiceURL.model_validate({**dt, "service_base_url": service_url_with_trailing_slash})
-            for dt in await res.json()
-        )
+        dts: list[DataTypeDefinitionWithServiceURL] = []
+
+        for dt in await res.json():
+            try:
+                dts.append(
+                    DataTypeDefinitionWithServiceURL.model_validate({**dt, "service_base_url": service_url_norm})
+                )
+            except ValidationError as err:
+                logger.error(f"Recieved malformatted data type: {dt} ({err=}); skipping")
+                continue
+
+        return tuple(dts)
 
 
 async def get_data_types(
