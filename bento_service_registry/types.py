@@ -7,7 +7,6 @@ from typing import TypedDict
 class BaseBentoService(TypedDict):
     url_template: str
     repository: str
-    data_service: bool
 
 
 # optional props for chord_services.json entries
