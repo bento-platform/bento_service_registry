@@ -3,13 +3,16 @@ import asyncio
 import logging
 
 from datetime import datetime
-from fastapi import Request, status
+from fastapi import Depends, Request, status
 from json import JSONDecodeError
+from typing import Annotated
 from urllib.parse import urljoin
 
-from .bento_services_json import BentoServicesByKind
-from .config import Config
+from .bento_services_json import BentoServicesByKind, BentoServicesByKindDependency
+from .config import Config, ConfigDependency
 from .constants import BENTO_SERVICE_KIND
+from .http_session import HTTPSessionDependency
+from .logger import LoggerDependency
 from .service_info import get_service_info
 from .types import BentoService
 
@@ -18,6 +21,7 @@ __all__ = [
     "get_service_url",
     "get_service",
     "get_services",
+    "ServicesDependency",
 ]
 
 
@@ -84,15 +88,18 @@ async def get_service(
 
 
 async def get_services(
-    bento_services_by_kind: BentoServicesByKind,
-    config: Config,
-    http_session: aiohttp.ClientSession,
-    logger: logging.Logger,
+    bento_services_by_kind: BentoServicesByKindDependency,
+    config: ConfigDependency,
+    http_session: HTTPSessionDependency,
+    logger: LoggerDependency,
     request: Request,
-) -> list[dict]:
+) -> tuple[dict, ...]:
     # noinspection PyTypeChecker
     service_list: list[dict | None] = await asyncio.gather(*[
         get_service(bento_services_by_kind, config, logger, request, http_session, s)
         for s in bento_services_by_kind.values()
     ])
-    return [s for s in service_list if s is not None]
+    return tuple(s for s in service_list if s is not None)
+
+
+ServicesDependency = Annotated[tuple[dict, ...], Depends(get_services)]

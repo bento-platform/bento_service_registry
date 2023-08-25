@@ -6,7 +6,7 @@ from .config import ConfigDependency
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
 from .service_info import get_service_info
-from .services import get_service, get_services
+from .services import get_service, ServicesDependency
 
 __all__ = [
     "service_registry",
@@ -21,27 +21,14 @@ async def bento_services(bento_services_by_compose_id: BentoServicesByComposeIDD
 
 
 @service_registry.get("/services", dependencies=[authz_middleware.dep_public_endpoint()])
-async def services(
-    bento_services_by_kind: BentoServicesByKindDependency,
-    config: ConfigDependency,
-    http_session: HTTPSessionDependency,
-    logger: LoggerDependency,
-    request: Request,
-):
-    return await get_services(bento_services_by_kind, config, http_session, logger, request)
+async def services(services_tuple: ServicesDependency):
+    return services_tuple
 
 
 @service_registry.get("/services/types", dependencies=[authz_middleware.dep_public_endpoint()])
-async def service_types(
-    bento_services_by_kind: BentoServicesByKindDependency,
-    config: ConfigDependency,
-    http_session: HTTPSessionDependency,
-    logger: LoggerDependency,
-    request: Request,
-) -> list[dict]:
+async def service_types(services_tuple: ServicesDependency) -> list[dict]:
     types_by_key: dict[str, dict] = {}
-    for st in (s["type"] for s in await get_services(
-            bento_services_by_kind, config, http_session, logger, request)):
+    for st in (s["type"] for s in services_tuple):
         sk = ":".join(st.values())
         types_by_key[sk] = st
 
@@ -55,17 +42,15 @@ async def service_by_id(
     http_session: HTTPSessionDependency,
     logger: LoggerDependency,
     request: Request,
+    services_tuple: ServicesDependency,
     service_id: str,
 ):
-    services_by_id = {
-        s["id"]: s
-        for s in (await get_services(bento_services_by_kind, config, http_session, logger, request))
-    }
+    services_by_service_id = {s["id"]: s for s in services_tuple}
 
-    if service_id not in services_by_id:
+    if service_id not in services_by_service_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Service with ID {service_id} was not found in registry")
 
-    svc = services_by_id[service_id]
+    svc = services_by_service_id[service_id]
 
     # Get service by bento.serviceKind, using type.artifact as a backup for legacy reasons
     service_data = await get_service(
