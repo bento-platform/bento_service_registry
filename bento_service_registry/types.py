@@ -1,7 +1,7 @@
-from typing import Dict, TypedDict
+from typing import TypedDict
 
 
-# TODO: py3.10(?): optional TypedDict props
+# TODO: py3.11(?): optional TypedDict props
 
 # required props for chord_services.json entries
 class BaseBentoService(TypedDict):
@@ -14,8 +14,7 @@ class BaseBentoService(TypedDict):
 class BentoService(BaseBentoService, total=False):
     service_kind: str
     url: str
-    manageable_tables: bool
     disabled: bool
 
 
-BentoServices = Dict[str, BentoService]
+BentoServices = dict[str, BentoService]
