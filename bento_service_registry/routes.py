@@ -14,6 +14,7 @@ from urllib.parse import urljoin
 from .authz import authz_middleware
 from .config import Config, ConfigDependency
 from .constants import BENTO_SERVICE_KIND, SERVICE_NAME, SERVICE_TYPE, SERVICE_ARTIFACT
+from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
 from .types import BentoService
 
@@ -91,8 +92,7 @@ async def get_service(
     service_info_url: str = urljoin(f"{s_url}/", "service-info")
 
     # Optional Authorization HTTP header to forward to nested requests
-    # TODO: Move X-Auth... constant to bento_lib
-    auth_header: str = request.headers.get("X-Authorization", request.headers.get("Authorization", ""))
+    auth_header: str = request.headers.get("Authorization", "")
     headers = {"Authorization": auth_header} if auth_header else {}
 
     dt = datetime.now()
@@ -137,25 +137,39 @@ async def bento_services(config: ConfigDependency, logger: LoggerDependency):
     return await get_bento_services_by_compose_id(config, logger)
 
 
-async def get_services(config: Config, logger: logging.Logger, request: Request) -> list[dict]:
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=config.bento_validate_ssl)) as session:
-        # noinspection PyTypeChecker
-        service_list: list[dict | None] = await asyncio.gather(*[
-            get_service(config, logger, request, session, s)
-            for s in (await get_bento_services_by_compose_id(config, logger)).values()
-        ])
-        return [s for s in service_list if s is not None]
+async def get_services(
+    config: Config,
+    http_session: aiohttp.ClientSession,
+    logger: logging.Logger,
+    request: Request,
+) -> list[dict]:
+    # noinspection PyTypeChecker
+    service_list: list[dict | None] = await asyncio.gather(*[
+        get_service(config, logger, request, http_session, s)
+        for s in (await get_bento_services_by_compose_id(config, logger)).values()
+    ])
+    return [s for s in service_list if s is not None]
 
 
 @service_registry.get("/services", dependencies=[authz_middleware.dep_public_endpoint()])
-async def services(config: ConfigDependency, logger: LoggerDependency, request: Request):
-    return await get_services(config, logger, request)
+async def services(
+    config: ConfigDependency,
+    http_session: HTTPSessionDependency,
+    logger: LoggerDependency,
+    request: Request,
+):
+    return await get_services(config, http_session, logger, request)
 
 
 @service_registry.get("/services/types", dependencies=[authz_middleware.dep_public_endpoint()])
-async def service_types(config: ConfigDependency, logger: LoggerDependency, request: Request) -> list[dict]:
+async def service_types(
+    config: ConfigDependency,
+    http_session: HTTPSessionDependency,
+    logger: LoggerDependency,
+    request: Request,
+) -> list[dict]:
     types_by_key: dict[str, dict] = {}
-    for st in (s["type"] for s in await get_services(config, logger, request)):
+    for st in (s["type"] for s in await get_services(config, http_session, logger, request)):
         sk = ":".join(st.values())
         types_by_key[sk] = st
 
@@ -165,11 +179,12 @@ async def service_types(config: ConfigDependency, logger: LoggerDependency, requ
 @service_registry.get("/services/{service_id}", dependencies=[authz_middleware.dep_public_endpoint()])
 async def service_by_id(
     config: ConfigDependency,
+    http_session: HTTPSessionDependency,
     logger: LoggerDependency,
     request: Request,
     service_id: str,
 ):
-    services_by_id = {s["id"]: s for s in (await get_services(config, logger, request))}
+    services_by_id = {s["id"]: s for s in (await get_services(config, http_session, logger, request))}
     bento_services_by_kind = await get_bento_services_by_kind(config, logger)
 
     if service_id not in services_by_id:
@@ -177,22 +192,21 @@ async def service_by_id(
 
     svc = services_by_id[service_id]
 
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=config.bento_validate_ssl)) as session:
-        # Get service by bento.serviceKind, using type.artifact as a backup for legacy reasons
-        service_data = await get_service(
-            config,
-            logger,
-            request,
-            session,
-            bento_services_by_kind[svc.get("bento", {}).get("serviceKind", svc["type"]["artifact"])],
-        )
+    # Get service by bento.serviceKind, using type.artifact as a backup for legacy reasons
+    service_data = await get_service(
+        config,
+        logger,
+        request,
+        http_session,
+        bento_services_by_kind[svc.get("bento", {}).get("serviceKind", svc["type"]["artifact"])],
+    )
 
-        if service_data is None:
-            raise HTTPException(
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-                f"An internal error was encountered with service with ID {service_id}")
+    if service_data is None:
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            f"An internal error was encountered with service with ID {service_id}")
 
-        return service_data
+    return service_data
 
 
 async def _git_stdout(*args) -> str:
