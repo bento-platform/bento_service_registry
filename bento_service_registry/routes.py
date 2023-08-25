@@ -1,7 +1,5 @@
-import aiofiles
 import aiohttp
 import asyncio
-import json
 import logging
 
 from bento_lib.types import GA4GHServiceInfo
@@ -12,6 +10,8 @@ from json.decoder import JSONDecodeError
 from urllib.parse import urljoin
 
 from .authz import authz_middleware
+from .bento_services_json import BentoServicesByKindDependency, BentoServicesByComposeIDDependency, \
+    BentoServicesByKind
 from .config import Config, ConfigDependency
 from .constants import BENTO_SERVICE_KIND, SERVICE_NAME, SERVICE_TYPE, SERVICE_ARTIFACT
 from .http_session import HTTPSessionDependency
@@ -25,55 +25,12 @@ __all__ = [
 service_registry = APIRouter()
 
 
-async def get_bento_services_by_compose_id(config: Config, logger: logging.Logger) -> dict[str, BentoService]:
-    """
-    Reads the list of services from the bento_services.json file
-    """
-
-    # Load bento_services.json data from the filesystem
-    try:
-        async with aiofiles.open(config.bento_services, "r") as f:
-            # Return dictionary of services (id: configuration) Skip disabled services
-            bento_services_data: dict[str, BentoService] = json.loads(await f.read())
-    except Exception as e:
-        except_name = type(e).__name__
-        logger.error(f"Error retrieving information from bento_services JSON file: {except_name} - {str(e)}")
-        return {}
-
-    return {
-        sk: BentoService(
-            **sv,
-            url=sv["url_template"].format(
-                BENTO_URL=config.bento_url,
-                BENTO_PUBLIC_URL=config.bento_public_url,
-                BENTO_PORTAL_PUBLIC_URL=config.bento_portal_public_url,
-                **sv,
-            ),
-        )  # type: ignore
-        for sk, sv in bento_services_data.items()
-        # Filter out disabled entries and entries without service_kind, which may be external/'transparent'
-        # - e.g., the gateway.
-        if not sv.get("disabled") and sv.get("service_kind")
-    }
-
-
-async def get_bento_services_by_kind(config: Config, logger: logging.Logger) -> dict[str, BentoService]:
-    services_by_kind: dict[str, BentoService] = {}
-
-    for sv in (await get_bento_services_by_compose_id(config, logger)).values():
-        # Disabled entries are already filtered out by get_bento_services_by_compose_id
-        # Filter out entries without service_kind, which may be external/'transparent' - e.g., the gateway.
-        if sk := sv.get("service_kind"):
-            services_by_kind[sk] = sv
-
-    return services_by_kind
-
-
-async def get_service_url(config: Config, logger: logging.Logger, service_kind: str) -> str:
-    return (await get_bento_services_by_kind(config, logger))[service_kind]["url"]
+def get_service_url(services_by_kind: BentoServicesByKind, service_kind: str) -> str:
+    return services_by_kind[service_kind]["url"]
 
 
 async def get_service(
+    bento_services_by_kind: BentoServicesByKind,
     config: Config,
     logger: logging.Logger,
     request: Request,
@@ -84,7 +41,7 @@ async def get_service(
 
     # special case: requesting info about the current service. Skip networking / self-connect.
     if kind == BENTO_SERVICE_KIND:
-        return await get_service_info(config, logger)
+        return await get_service_info(bento_services_by_kind, config, logger)
 
     timeout = aiohttp.ClientTimeout(total=config.contact_timeout)
 
@@ -133,11 +90,12 @@ async def get_service(
 
 
 @service_registry.get("/bento-services", dependencies=[authz_middleware.dep_public_endpoint()])
-async def bento_services(config: ConfigDependency, logger: LoggerDependency):
-    return await get_bento_services_by_compose_id(config, logger)
+async def bento_services(bento_services_by_compose_id: BentoServicesByComposeIDDependency):
+    return bento_services_by_compose_id
 
 
 async def get_services(
+    bento_services_by_kind: BentoServicesByKind,
     config: Config,
     http_session: aiohttp.ClientSession,
     logger: logging.Logger,
@@ -145,31 +103,34 @@ async def get_services(
 ) -> list[dict]:
     # noinspection PyTypeChecker
     service_list: list[dict | None] = await asyncio.gather(*[
-        get_service(config, logger, request, http_session, s)
-        for s in (await get_bento_services_by_compose_id(config, logger)).values()
+        get_service(bento_services_by_kind, config, logger, request, http_session, s)
+        for s in bento_services_by_kind.values()
     ])
     return [s for s in service_list if s is not None]
 
 
 @service_registry.get("/services", dependencies=[authz_middleware.dep_public_endpoint()])
 async def services(
+    bento_services_by_kind: BentoServicesByKindDependency,
     config: ConfigDependency,
     http_session: HTTPSessionDependency,
     logger: LoggerDependency,
     request: Request,
 ):
-    return await get_services(config, http_session, logger, request)
+    return await get_services(bento_services_by_kind, config, http_session, logger, request)
 
 
 @service_registry.get("/services/types", dependencies=[authz_middleware.dep_public_endpoint()])
 async def service_types(
+    bento_services_by_kind: BentoServicesByKindDependency,
     config: ConfigDependency,
     http_session: HTTPSessionDependency,
     logger: LoggerDependency,
     request: Request,
 ) -> list[dict]:
     types_by_key: dict[str, dict] = {}
-    for st in (s["type"] for s in await get_services(config, http_session, logger, request)):
+    for st in (s["type"] for s in await get_services(
+            bento_services_by_kind, config, http_session, logger, request)):
         sk = ":".join(st.values())
         types_by_key[sk] = st
 
@@ -178,14 +139,17 @@ async def service_types(
 
 @service_registry.get("/services/{service_id}", dependencies=[authz_middleware.dep_public_endpoint()])
 async def service_by_id(
+    bento_services_by_kind: BentoServicesByKindDependency,
     config: ConfigDependency,
     http_session: HTTPSessionDependency,
     logger: LoggerDependency,
     request: Request,
     service_id: str,
 ):
-    services_by_id = {s["id"]: s for s in (await get_services(config, http_session, logger, request))}
-    bento_services_by_kind = await get_bento_services_by_kind(config, logger)
+    services_by_id = {
+        s["id"]: s
+        for s in (await get_services(bento_services_by_kind, config, http_session, logger, request))
+    }
 
     if service_id not in services_by_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Service with ID {service_id} was not found in registry")
@@ -194,6 +158,7 @@ async def service_by_id(
 
     # Get service by bento.serviceKind, using type.artifact as a backup for legacy reasons
     service_data = await get_service(
+        bento_services_by_kind,
         config,
         logger,
         request,
@@ -216,7 +181,11 @@ async def _git_stdout(*args) -> str:
     return res.decode().rstrip()
 
 
-async def get_service_info(config: Config, logger: logging.Logger) -> GA4GHServiceInfo:
+async def get_service_info(
+    bento_services_by_kind: BentoServicesByKind,
+    config: Config,
+    logger: logging.Logger,
+) -> GA4GHServiceInfo:
     service_id = config.service_id
     service_info_dict: GA4GHServiceInfo = {
         "id": service_id,
@@ -229,7 +198,7 @@ async def get_service_info(config: Config, logger: logging.Logger) -> GA4GHServi
         },
         "contactUrl": "mailto:info@c3g.ca",
         "version": __version__,
-        "url": await get_service_url(config, logger, SERVICE_ARTIFACT),
+        "url": get_service_url(bento_services_by_kind, SERVICE_ARTIFACT),
         "environment": "prod",
         "bento": {
             "serviceKind": BENTO_SERVICE_KIND,
@@ -260,6 +229,10 @@ async def get_service_info(config: Config, logger: logging.Logger) -> GA4GHServi
 
 
 @service_registry.get("/service-info", dependencies=[authz_middleware.dep_public_endpoint()])
-async def service_info(config: ConfigDependency, logger: LoggerDependency):
+async def service_info(
+    bento_services_by_kind: BentoServicesByKindDependency,
+    config: ConfigDependency,
+    logger: LoggerDependency,
+):
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
-    return await get_service_info(config, logger)
+    return await get_service_info(bento_services_by_kind, config, logger)
