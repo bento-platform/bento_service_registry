@@ -10,7 +10,7 @@ from urllib.parse import urljoin
 
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
-from .models import DataTypeDefinitionWithServiceURL
+from .models import DataTypeWithServiceURL
 from .services import ServicesDependency
 
 __all__ = [
@@ -20,7 +20,7 @@ __all__ = [
 ]
 
 
-DataTypesTuple = tuple[DataTypeDefinitionWithServiceURL, ...]
+DataTypesTuple = tuple[DataTypeWithServiceURL, ...]
 
 
 async def get_data_types_from_service(
@@ -42,13 +42,11 @@ async def get_data_types_from_service(
                 f"Got non-200 response from data type service ({service_url=}): {res.status=}; body={await res.json()}")
             return ()
 
-        dts: list[DataTypeDefinitionWithServiceURL] = []
+        dts: list[DataTypeWithServiceURL] = []
 
         for dt in await res.json():
             try:
-                dts.append(
-                    DataTypeDefinitionWithServiceURL.model_validate({**dt, "service_base_url": service_url_norm})
-                )
+                dts.append(DataTypeWithServiceURL.model_validate({**dt, "service_base_url": service_url_norm}))
             except ValidationError as err:
                 logger.error(f"Recieved malformatted data type: {dt} ({err=}); skipping")
                 continue
@@ -67,7 +65,7 @@ async def get_data_types(
 
     logger.debug(f"Found {len(data_services)} data services")
 
-    data_types_from_services: tuple[DataTypeDefinitionWithServiceURL, ...] = tuple(
+    data_types_from_services: tuple[DataTypeWithServiceURL, ...] = tuple(
         itertools.chain(
             *await asyncio.gather(*(
                 get_data_types_from_service(http_session, logger, s) for s in data_services

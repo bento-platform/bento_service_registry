@@ -1,11 +1,11 @@
 from pydantic import BaseModel, Field
 
 __all__ = [
-    "DataTypeDefinitionWithServiceURL",
+    "DataTypeWithServiceURL",
 ]
 
 
-class DataTypeDefinitionWithServiceURL(BaseModel):
+class DataTypeWithServiceURL(BaseModel):
     label: str | None = None
     queryable: bool
     item_schema: dict = Field(..., alias="schema")
