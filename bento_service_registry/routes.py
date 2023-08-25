@@ -43,8 +43,6 @@ async def get_service(
     if kind == BENTO_SERVICE_KIND:
         return await get_service_info(bento_services_by_kind, config, logger)
 
-    timeout = aiohttp.ClientTimeout(total=config.contact_timeout)
-
     s_url: str = service_metadata["url"]
     service_info_url: str = urljoin(f"{s_url}/", "service-info")
 
@@ -58,7 +56,7 @@ async def get_service(
     service_resp: dict[str, dict] = {}
 
     try:
-        async with session.get(service_info_url, headers=headers, timeout=timeout) as r:
+        async with session.get(service_info_url, headers=headers) as r:
             if r.status != 200:
                 r_text = await r.text()
                 logger.error(f"Non-200 status code on {kind}: {r.status}  Content: {r_text}")
