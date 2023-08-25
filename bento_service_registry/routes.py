@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Request, status
 
 from .authz import authz_middleware
 from .bento_services_json import BentoServicesByKindDependency, BentoServicesByComposeIDDependency
+from .data_types import DataTypesDependency
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
 from .service_info import ServiceInfoDependency
@@ -20,12 +21,12 @@ async def bento_services(bento_services_by_compose_id: BentoServicesByComposeIDD
 
 
 @service_registry.get("/services", dependencies=[authz_middleware.dep_public_endpoint()])
-async def services(services_tuple: ServicesDependency):
-    return services_tuple
+async def list_services(services: ServicesDependency):
+    return services
 
 
 @service_registry.get("/services/types", dependencies=[authz_middleware.dep_public_endpoint()])
-async def service_types(services_tuple: ServicesDependency) -> list[dict]:
+async def list_service_types(services_tuple: ServicesDependency) -> list[dict]:
     types_by_key: dict[str, dict] = {}
     for st in (s["type"] for s in services_tuple):
         sk = ":".join(st.values())
@@ -35,12 +36,12 @@ async def service_types(services_tuple: ServicesDependency) -> list[dict]:
 
 
 @service_registry.get("/services/{service_id}", dependencies=[authz_middleware.dep_public_endpoint()])
-async def service_by_id(
+async def get_service_by_id(
     bento_services_by_kind: BentoServicesByKindDependency,
     http_session: HTTPSessionDependency,
     logger: LoggerDependency,
     request: Request,
-    service_info_contents: ServiceInfoDependency,
+    service_info: ServiceInfoDependency,
     services_tuple: ServicesDependency,
     service_id: str,
 ):
@@ -56,7 +57,7 @@ async def service_by_id(
         logger,
         request,
         http_session,
-        service_info_contents,
+        service_info,
         bento_services_by_kind[svc.get("bento", {}).get("serviceKind", svc["type"]["artifact"])],
     )
 
@@ -68,7 +69,12 @@ async def service_by_id(
     return service_data
 
 
+@service_registry.get("/data-types", dependencies=[authz_middleware.dep_public_endpoint()])
+async def list_data_types(data_types: DataTypesDependency):
+    return data_types
+
+
 @service_registry.get("/service-info", dependencies=[authz_middleware.dep_public_endpoint()])
-async def service_info(service_info_contents: ServiceInfoDependency):
+async def get_service_info(service_info: ServiceInfoDependency):
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
-    return service_info_contents
+    return service_info

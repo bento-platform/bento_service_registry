@@ -67,9 +67,7 @@ async def get_data_types(
 
     data_types_from_services: tuple[DataTypeWithServiceURL, ...] = tuple(
         itertools.chain(
-            *await asyncio.gather(*(
-                get_data_types_from_service(http_session, logger, s) for s in data_services
-            ))
+            *await asyncio.gather(*(get_data_types_from_service(http_session, logger, s) for s in data_services))
         )
     )
 
