@@ -4,11 +4,12 @@ import logging
 
 from bento_lib.types import GA4GHServiceInfo
 from datetime import datetime
-from fastapi import Depends, Request, status
+from fastapi import Depends, status
 from json import JSONDecodeError
 from typing import Annotated
 from urllib.parse import urljoin
 
+from .authz_header import OptionalAuthzHeader, OptionalAuthzHeaderDependency
 from .bento_services_json import BentoServicesByKindDependency
 from .constants import BENTO_SERVICE_KIND
 from .http_session import HTTPSessionDependency
@@ -25,8 +26,8 @@ __all__ = [
 
 
 async def get_service(
+    authz_header: OptionalAuthzHeader,
     logger: logging.Logger,
-    request: Request,
     session: aiohttp.ClientSession,
     service_info: GA4GHServiceInfo,
     service_metadata: BentoService,
@@ -41,17 +42,13 @@ async def get_service(
     s_url: str = service_metadata["url"]
     service_info_url: str = urljoin(f"{s_url}/", "service-info")
 
-    # Optional Authorization HTTP header to forward to nested requests
-    auth_header: str = request.headers.get("Authorization", "")
-    headers = {"Authorization": auth_header} if auth_header else {}
-
     dt = datetime.now()
-    logger.info(f"Contacting {service_info_url}{' with bearer token' if auth_header else ''}")
+    logger.info(f"Contacting {service_info_url}{' with bearer token' if authz_header else ''}")
 
     service_resp: dict[str, dict] = {}
 
     try:
-        async with session.get(service_info_url, headers=headers) as r:
+        async with session.get(service_info_url, headers=authz_header) as r:
             if r.status != status.HTTP_200_OK:
                 r_text = await r.text()
                 logger.error(f"Non-200 status code on {kind}: {r.status}  Content: {r_text}")
@@ -59,7 +56,7 @@ async def get_service(
                 # If we have the special case where we got a JWT error from the proxy script, we can safely print out
                 # headers for debugging, since the JWT leaked isn't valid anyway.
                 if "invalid jwt" in r_text:
-                    logger.error(f"Encountered auth error on {kind}; tried to use header: {auth_header}")
+                    logger.error(f"Encountered auth error on {kind}; tried to use header: {authz_header}")
 
                 return None
 
@@ -83,15 +80,15 @@ async def get_service(
 
 
 async def get_services(
+    authz_header: OptionalAuthzHeaderDependency,
     bento_services_by_kind: BentoServicesByKindDependency,
     http_session: HTTPSessionDependency,
     logger: LoggerDependency,
-    request: Request,
     service_info: ServiceInfoDependency,
 ) -> tuple[dict, ...]:
     # noinspection PyTypeChecker
     service_list: list[dict | None] = await asyncio.gather(*[
-        get_service(logger, request, http_session, service_info, s)
+        get_service(authz_header, logger, http_session, service_info, s)
         for s in bento_services_by_kind.values()
     ])
     return tuple(s for s in service_list if s is not None)

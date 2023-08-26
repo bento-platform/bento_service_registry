@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from typing import Annotated
 from urllib.parse import urljoin
 
+from .authz_header import OptionalAuthzHeader, OptionalAuthzHeaderDependency
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
 from .models import DataTypeWithServiceURL
@@ -24,6 +25,7 @@ DataTypesTuple = tuple[DataTypeWithServiceURL, ...]
 
 
 async def get_data_types_from_service(
+    authz_header: OptionalAuthzHeader,
     http_session: aiohttp.ClientSession,
     logger: logging.Logger,
     service: dict,
@@ -36,7 +38,7 @@ async def get_data_types_from_service(
 
     service_url_norm: str = service_url.rstrip("/") + "/"
 
-    async with http_session.get(urljoin(service_url_norm, "data-types")) as res:
+    async with http_session.get(urljoin(service_url_norm, "data-types"), headers=authz_header) as res:
         if res.status != status.HTTP_200_OK:
             logger.error(
                 f"Got non-200 response from data type service ({service_url=}): {res.status=}; body={await res.json()}")
@@ -55,6 +57,7 @@ async def get_data_types_from_service(
 
 
 async def get_data_types(
+    authz_header: OptionalAuthzHeaderDependency,
     http_session: HTTPSessionDependency,
     logger: LoggerDependency,
     services_tuple: ServicesDependency,
@@ -67,7 +70,9 @@ async def get_data_types(
 
     data_types_from_services: tuple[DataTypeWithServiceURL, ...] = tuple(
         itertools.chain(
-            *await asyncio.gather(*(get_data_types_from_service(http_session, logger, s) for s in data_services))
+            *await asyncio.gather(
+                *(get_data_types_from_service(authz_header, http_session, logger, s) for s in data_services)
+            )
         )
     )
 

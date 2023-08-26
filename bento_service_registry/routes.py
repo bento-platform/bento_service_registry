@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, status
 
 from .authz import authz_middleware
+from .authz_header import OptionalAuthzHeaderDependency
 from .bento_services_json import BentoServicesByKindDependency, BentoServicesByComposeIDDependency
 from .data_types import DataTypesDependency
 from .http_session import HTTPSessionDependency
@@ -37,10 +38,10 @@ async def list_service_types(services_tuple: ServicesDependency) -> list[dict]:
 
 @service_registry.get("/services/{service_id}", dependencies=[authz_middleware.dep_public_endpoint()])
 async def get_service_by_id(
+    authz_header: OptionalAuthzHeaderDependency,
     bento_services_by_kind: BentoServicesByKindDependency,
     http_session: HTTPSessionDependency,
     logger: LoggerDependency,
-    request: Request,
     service_info: ServiceInfoDependency,
     services_tuple: ServicesDependency,
     service_id: str,
@@ -54,8 +55,8 @@ async def get_service_by_id(
 
     # Get service by bento.serviceKind, using type.artifact as a backup for legacy reasons
     service_data = await get_service(
+        authz_header,
         logger,
-        request,
         http_session,
         service_info,
         bento_services_by_kind[svc.get("bento", {}).get("serviceKind", svc["type"]["artifact"])],
