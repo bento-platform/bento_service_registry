@@ -1,5 +1,5 @@
 from fastapi import Depends, Request
-from typing import Annotated, Literal, Type
+from typing import Annotated, Literal
 
 
 __all__ = [
@@ -9,9 +9,10 @@ __all__ = [
 ]
 
 
-HEADER_AUTHORIZATION: Literal["Authorization"] = "Authorization"
+HeaderAuthorizationType = Literal["Authorization"]
+HEADER_AUTHORIZATION: HeaderAuthorizationType = "Authorization"
 
-OptionalAuthzHeader = dict[Type[HEADER_AUTHORIZATION], str] | None
+OptionalAuthzHeader = dict[HeaderAuthorizationType, str] | None
 
 
 def get_authz_header(request: Request) -> OptionalAuthzHeader:
