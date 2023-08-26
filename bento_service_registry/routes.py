@@ -3,9 +3,10 @@ from fastapi import APIRouter, HTTPException, status
 from .authz import authz_middleware
 from .authz_header import OptionalAuthzHeaderDependency
 from .bento_services_json import BentoServicesByKindDependency, BentoServicesByComposeIDDependency
-from .data_types import DataTypesDependency
+from .data_types import DataTypesDependency, DataTypesTuple
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
+from .models import DataTypeWithServiceURL
 from .service_info import ServiceInfoDependency
 from .services import get_service, ServicesDependency
 
@@ -71,8 +72,15 @@ async def get_service_by_id(
 
 
 @service_registry.get("/data-types", dependencies=[authz_middleware.dep_public_endpoint()])
-async def list_data_types(data_types: DataTypesDependency):
+async def list_data_types(data_types: DataTypesDependency) -> DataTypesTuple:
     return data_types
+
+
+@service_registry.get("/data-types/{data_type_id}", dependencies=[authz_middleware.dep_public_endpoint()])
+async def get_data_type(data_types: DataTypesDependency, data_type_id: str) -> DataTypeWithServiceURL:
+    if (dt_res := {dt.id: dt for dt in data_types}.get(data_type_id)) is not None:
+        return dt_res
+    raise HTTPException(status.HTTP_404_NOT_FOUND, f"Data type with ID {data_type_id} was not found")
 
 
 @service_registry.get("/service-info", dependencies=[authz_middleware.dep_public_endpoint()])

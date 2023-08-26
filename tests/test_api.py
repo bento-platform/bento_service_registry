@@ -79,3 +79,8 @@ def test_data_types_list(client):
 
     assert r.status_code == 200
     assert len(d) == 0  # no data services
+
+
+def test_data_types_detail_404(client):
+    r = client.get("/data-types/dne")
+    assert r.status_code == 404
