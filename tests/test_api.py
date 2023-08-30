@@ -71,3 +71,16 @@ async def test_service_type_list(client, service_info):
     assert r.status_code == 200
     assert len(d) == 1
     assert d[0] == service_info["type"]
+
+
+def test_data_types_list(client):
+    r = client.get("/data-types")
+    d = r.json()
+
+    assert r.status_code == 200
+    assert len(d) == 0  # no data services
+
+
+def test_data_types_detail_404(client):
+    r = client.get("/data-types/dne")
+    assert r.status_code == 404
