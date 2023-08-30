@@ -2,7 +2,7 @@ FROM ghcr.io/bento-platform/bento_base_image:python-debian-2023.08.30
 
 # Use uvicorn (instead of hypercorn) in production since I've found
 # multiple benchmarks showing it to be faster - David L
-RUN pip install --no-cache-dir "uvicorn[standard]==0.22.0"
+RUN pip install --no-cache-dir "uvicorn[standard]==0.23.2"
 
 # Backwards-compatible with old BentoV2 container layout
 WORKDIR /service-registry
