@@ -1,4 +1,4 @@
-FROM ghcr.io/bento-platform/bento_base_image:python-debian-2023.05.12
+FROM ghcr.io/bento-platform/bento_base_image:python-debian-2023.08.30
 
 RUN pip install --no-cache-dir "uvicorn[standard]==0.22.0"
 
