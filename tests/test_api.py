@@ -84,3 +84,11 @@ def test_data_types_list(client):
 def test_data_types_detail_404(client):
     r = client.get("/data-types/dne")
     assert r.status_code == 404
+
+
+def test_workflows_by_purpose(client):
+    r = client.get("/workflows")
+    d = r.json()
+
+    assert r.status_code == 200
+    assert len(d) == 0  # no workflow-providing services
