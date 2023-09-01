@@ -5,10 +5,10 @@ from .authz_header import OptionalAuthzHeaderDependency
 from .bento_services_json import BentoServicesByKindDependency, BentoServicesByComposeIDDependency
 from .data_types import DataTypesDependency, DataTypesTuple
 from .http_session import HTTPSessionDependency
-from .logger import LoggerDependency
 from .models import DataTypeWithServiceURL
 from .service_info import ServiceInfoDependency
-from .services import get_service, ServicesDependency
+from .services import ServiceManagerDependency, ServicesDependency
+from .workflows import WorkflowsByPurpose, WorkflowsDependency
 
 __all__ = [
     "service_registry",
@@ -42,8 +42,8 @@ async def get_service_by_id(
     authz_header: OptionalAuthzHeaderDependency,
     bento_services_by_kind: BentoServicesByKindDependency,
     http_session: HTTPSessionDependency,
-    logger: LoggerDependency,
     service_info: ServiceInfoDependency,
+    service_manager: ServiceManagerDependency,
     services_tuple: ServicesDependency,
     service_id: str,
 ):
@@ -55,9 +55,8 @@ async def get_service_by_id(
     svc = services_by_service_id[service_id]
 
     # Get service by bento.serviceKind, using type.artifact as a backup for legacy reasons
-    service_data = await get_service(
+    service_data = await service_manager.get_service(
         authz_header,
-        logger,
         http_session,
         service_info,
         bento_services_by_kind[svc.get("bento", {}).get("serviceKind", svc["type"]["artifact"])],
@@ -81,6 +80,11 @@ async def get_data_type(data_types: DataTypesDependency, data_type_id: str) -> D
     if (dt_res := {dt.id: dt for dt in data_types}.get(data_type_id)) is not None:
         return dt_res
     raise HTTPException(status.HTTP_404_NOT_FOUND, f"Data type with ID {data_type_id} was not found")
+
+
+@service_registry.get("/workflows", dependencies=[authz_middleware.dep_public_endpoint()])
+async def list_workflows_by_purpose(workflows: WorkflowsDependency) -> WorkflowsByPurpose:
+    return workflows
 
 
 @service_registry.get("/service-info", dependencies=[authz_middleware.dep_public_endpoint()])
