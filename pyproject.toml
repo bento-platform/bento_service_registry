@@ -22,9 +22,9 @@ python = "^3.10.0"
 aiodns = "^3.0.0"
 aiofiles = "^23.2.1"
 aiohttp = "^3.8.5"
-bento-lib = {extras = ["fastapi"], version = "^7.2.2"}
-fastapi = "^0.101.1"
-pydantic = "^2.3.0"
+bento-lib = {extras = ["fastapi"], version = "^8.0.0"}
+fastapi = "^0.103.2"
+pydantic = "^2.4.0"
 pydantic-settings = "^2.0.3"
 
 [tool.poetry.group.dev.dependencies]
