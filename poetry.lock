@@ -210,28 +210,29 @@ tests-no-zope = ["cloudpickle", "hypothesis", "mypy (>=1.1.1)", "pympler", "pyte
 
 [[package]]
 name = "bento-lib"
-version = "8.1.0"
+version = "9.1.0"
 description = "A set of common utilities and helpers for Bento platform services."
 optional = false
 python-versions = ">=3.10.0"
 files = [
-    {file = "bento_lib-8.1.0-py3-none-any.whl", hash = "sha256:4c4777942ec20594a7a3e8d1e387641d206efbb9adffde3cf02f1813fb66db2e"},
-    {file = "bento_lib-8.1.0.tar.gz", hash = "sha256:e51e8e8f40d4fa682533a98471b4ef7c91a1907c2dc24c7fb948725719bcad73"},
+    {file = "bento_lib-9.1.0-py3-none-any.whl", hash = "sha256:bda09c3b0a86ebaefa2a60f2650deafec7e36d45b3aaaf380baca7ff58564569"},
+    {file = "bento_lib-9.1.0.tar.gz", hash = "sha256:7772dd440c97977dfeee15ded79bc2e0ba7e2d1c6708821180b38b76722dd936"},
 ]
 
 [package.dependencies]
 aiohttp = ">=3.8.4,<4"
-fastapi = {version = ">=0.100,<0.104", optional = true, markers = "extra == \"fastapi\""}
+fastapi = {version = ">=0.100,<0.105", optional = true, markers = "extra == \"fastapi\""}
 jsonschema = ">=4.17.3,<5"
 psycopg2-binary = ">=2.9.5,<3.0"
+pydantic = ">=2.3.0,<3"
 redis = ">=4.5.4,<5.0"
 requests = ">=2.28.1,<3"
-Werkzeug = ">=2.2.3,<3"
+Werkzeug = ">=2.2.3,<4"
 
 [package.extras]
 django = ["Django (>=4.2.1,<5)", "djangorestframework (>=3.14.0,<3.15)"]
-fastapi = ["fastapi (>=0.100,<0.104)"]
-flask = ["Flask (>=2.2.5,<3)"]
+fastapi = ["fastapi (>=0.100,<0.105)"]
+flask = ["Flask (>=2.2.5,<4)"]
 
 [[package]]
 name = "cachetools"
@@ -1868,4 +1869,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0"
-content-hash = "bab5861e36206bc8e34b565ad7b6f15974f301768d6d1bc013830c34e99e7f13"
+content-hash = "92280f99d19164207899370bbf2a507b61fa45eb2850bd5066fb3f33720b9222"
