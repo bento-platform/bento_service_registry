@@ -1,4 +1,4 @@
-from bento_lib.types import GA4GHServiceType
+from bento_lib.service_info import GA4GHServiceType
 from bento_service_registry import __version__
 
 __all__ = [

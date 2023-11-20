@@ -3,7 +3,7 @@ import asyncio
 import logging
 
 from aiohttp import ClientSession
-from bento_lib.types import GA4GHServiceInfo
+from bento_lib.service_info import GA4GHServiceInfo
 from datetime import datetime
 from fastapi import Depends, status
 from functools import lru_cache
