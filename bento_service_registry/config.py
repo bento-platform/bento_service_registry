@@ -28,6 +28,7 @@ DEFAULT_SERVICE_ID = ":".join(list(SERVICE_TYPE.values())[:2])
 
 class Config(BaseSettings):
     bento_debug: bool = False
+    bento_container_local: bool = False
     bento_validate_ssl: bool = True
 
     bento_services: Path
