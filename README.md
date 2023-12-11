@@ -29,7 +29,7 @@ To run the service in development mode, use the following command:
 
 ```bash
 poetry run python -m debugpy --listen "0.0.0.0:5678" -m uvicorn \
-  "bento_service_registry.app:application" \
+  --factory "bento_service_registry.app:create_app" \
   --host 0.0.0.0 \
   --port "${INTERNAL_PORT}" \
   --reload
@@ -52,6 +52,9 @@ The following environment variables are used to configure the
 ```bash
 # Debug mode:
 BENTO_DEBUG=false
+
+# Whether we're in a local/container-local context
+BENTO_CONTAINER_LOCAL=false
 
 # When this is off, requests made to other services in the 
 # registry will not validate SSL certificates.
@@ -82,5 +85,5 @@ LOG_LEVEL=debug
 
 # Authorization settings
 BENTO_AUTHZ_SERVICE_URL=http://bentov2.local/api/authorization
-AUTHZ_ENABLED=true
+BENTO_AUTHZ_ENABLED=true
 ```
