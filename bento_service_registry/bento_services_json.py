@@ -1,5 +1,5 @@
 import aiofiles
-import json
+import orjson
 from fastapi import Depends
 
 from typing import Annotated
@@ -23,8 +23,8 @@ BentoServicesByKind = dict[str, BentoService]
 
 
 async def get_bento_services_by_compose_id(config: ConfigDependency) -> BentoServicesByComposeID:
-    async with aiofiles.open(config.bento_services, "r") as fh:
-        bento_services_data: BentoServicesByComposeID = json.loads(await fh.read())
+    async with aiofiles.open(config.bento_services, "rb") as fh:
+        bento_services_data: BentoServicesByComposeID = orjson.loads(await fh.read())
 
     return {
         sk: BentoService(

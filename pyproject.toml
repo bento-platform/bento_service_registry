@@ -22,10 +22,11 @@ python = "^3.10.0"
 aiodns = "^3.0.0"
 aiofiles = "^23.2.1"
 aiohttp = "^3.8.5"
-bento-lib = {version = "^10.0.0", extras = ["fastapi"]}
+bento-lib = {extras = ["fastapi"], version = "^11.0.1"}
 fastapi = "^0.104.1"
 pydantic = "^2.4.0"
 pydantic-settings = "^2.0.3"
+orjson = "^3.9.10"
 
 [tool.poetry.group.dev.dependencies]
 coverage = "^7.2.1"
