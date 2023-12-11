@@ -17,6 +17,7 @@ DEFAULT_SERVICE_ID = ":".join(list(SERVICE_TYPE.values())[:2])
 
 
 class Config(BentoBaseConfig):
+    service_id: str = DEFAULT_SERVICE_ID
     service_name: str = "Bento Service Registry"
 
     bento_services: Path
