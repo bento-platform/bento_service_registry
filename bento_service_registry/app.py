@@ -3,34 +3,41 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from typing import Callable
 
 from .authz import authz_middleware
-from .config import get_config
+from .config import Config, get_config
 from .logger import get_logger
 from .routes import service_registry
 
 __all__ = [
-    "application",
+    "create_app",
 ]
 
 
-application = FastAPI()
-application.include_router(service_registry)
+def create_app(config_override: Callable[[], Config] | None = None) -> FastAPI:
+    app = FastAPI()
 
-# TODO: Find a way to DI this
-config_for_setup = get_config()
+    config_for_setup: Config = (config_override or get_config)()
+    if config_override:
+        # noinspection PyUnresolvedReferences
+        app.dependency_overrides[get_config] = config_override
 
-application.add_middleware(
-    CORSMiddleware,
-    allow_origins=config_for_setup.cors_origins,
-    allow_headers=["Authorization"],
-    allow_credentials=True,
-    allow_methods=["*"],
-)
+    app.include_router(service_registry)
 
-# Non-standard middleware setup so that we can import the instance and use it for dependencies too
-authz_middleware.attach(application)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=config_for_setup.cors_origins,
+        allow_headers=["Authorization"],
+        allow_credentials=True,
+        allow_methods=["*"],
+    )
 
-application.exception_handler(StarletteHTTPException)(
-    http_exception_handler_factory(get_logger(config_for_setup), authz_middleware))
-application.exception_handler(RequestValidationError)(validation_exception_handler_factory(authz_middleware))
+    # Non-standard middleware setup so that we can import the instance and use it for dependencies too
+    authz_middleware.attach(app)
+
+    app.exception_handler(StarletteHTTPException)(
+        http_exception_handler_factory(get_logger(config_for_setup), authz_middleware))
+    app.exception_handler(RequestValidationError)(validation_exception_handler_factory(authz_middleware))
+
+    return app

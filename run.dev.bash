@@ -3,7 +3,7 @@
 # Update dependencies and install module locally
 /poetry_user_install_dev.bash
 
-export ASGI_APP='bento_service_registry.app:application'
+export ASGI_APP_FACTORY='bento_service_registry.app:create_app'
 
 # Set default internal port to 5000
 : "${INTERNAL_PORT:=5000}"
@@ -12,7 +12,7 @@ export ASGI_APP='bento_service_registry.app:application'
 : "${DEBUGGER_PORT:=5678}"
 
 python -m debugpy --listen "0.0.0.0:${DEBUGGER_PORT}" -m uvicorn \
-  "${ASGI_APP}" \
+  --factory "${ASGI_APP_FACTORY}" \
   --host 0.0.0.0 \
   --port "${INTERNAL_PORT}" \
   --reload

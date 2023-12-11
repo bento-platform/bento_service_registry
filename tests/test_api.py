@@ -33,27 +33,27 @@ def test_bento_service_list(client):
 
 @pytest.mark.asyncio
 async def test_service_list(client, service_info):
-    service_info = await service_info
+    service_info_data = await service_info
 
     r = client.get("/services")
     d = r.json()
 
     assert r.status_code == 200
     assert len(d) == 1
-    assert d[0] == service_info
+    assert d[0] == {**service_info_data, "url": d[0]["url"]}  # pytest handles dictionary equality
 
 
 @pytest.mark.asyncio
 async def test_service_detail(client, service_info):
-    service_info = await service_info
+    service_info_data = await service_info
 
-    r = client.get(f"/services/{service_info['id']}")
+    r = client.get(f"/services/{service_info_data['id']}")
     d = r.json()
 
-    print(f"/services/{service_info['id']}", d)
+    print(f"/services/{service_info_data['id']}", d)
 
     assert r.status_code == 200
-    assert d == service_info
+    assert d == {**service_info_data, "url": d["url"]}  # pytest handles dictionary equality
 
 
 def test_service_detail_dne(client, service_info):

@@ -3,7 +3,7 @@ import asyncio
 import logging
 
 from aiohttp import ClientSession
-from bento_lib.service_info import GA4GHServiceInfo
+from bento_lib.service_info.types import GA4GHServiceInfo
 from datetime import datetime
 from fastapi import Depends, status
 from functools import lru_cache
@@ -41,19 +41,19 @@ class ServiceManager:
         service_metadata: BentoService,
     ) -> dict | None:
         kind = service_metadata["service_kind"]
+        s_url: str = service_metadata["url"]
 
         # special case: requesting info about the current service. Skip networking / self-connect;
         # instead, return pre-calculated /service-info contents.
         if kind == BENTO_SERVICE_KIND:
-            return service_info
+            return {**service_info, "url": s_url}
 
-        s_url: str = service_metadata["url"]
         service_info_url: str = urljoin(f"{s_url}/", "service-info")
 
         dt = datetime.now()
         self._logger.info(f"Contacting {service_info_url}{' with bearer token' if authz_header else ''}")
 
-        service_resp: dict[str, dict] = {}
+        service_resp: dict | None = None
 
         try:
             async with http_session.get(service_info_url, headers=authz_header) as r:
@@ -69,15 +69,15 @@ class ServiceManager:
                     return None
 
                 try:
-                    service_resp[kind] = {**(await r.json()), "url": s_url}
+                    service_resp = {**(await r.json()), "url": s_url}
+                    self._logger.info(f"{service_info_url}: Took {(datetime.now() - dt).total_seconds():.1f}s")
                 except (JSONDecodeError, aiohttp.ContentTypeError, TypeError) as e:
                     # JSONDecodeError can happen if the JSON is invalid
                     # ContentTypeError can happen if the Content-Type is not application/json
                     # TypeError can happen if None is received
                     self._logger.error(
-                        f"Encountered invalid response ({str(e)}) from {service_info_url}: {await r.text()}")
-
-                self._logger.info(f"{service_info_url}: Took {(datetime.now() - dt).total_seconds():.1f}s")
+                        f"{service_info_url}: Encountered invalid response ({str(e)}) - {await r.text()} "
+                        f"(Took {(datetime.now() - dt).total_seconds():.1f}s)")
 
         except asyncio.TimeoutError:
             self._logger.error(f"Encountered timeout with {service_info_url}")
@@ -85,7 +85,7 @@ class ServiceManager:
         except aiohttp.ClientConnectionError as e:
             self._logger.error(f"Encountered connection error with {service_info_url}: {str(e)}")
 
-        return service_resp.get(kind)
+        return service_resp
 
     async def get_services(
         self,

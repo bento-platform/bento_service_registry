@@ -1,4 +1,3 @@
-import aiohttp
 import logging
 import os
 import pytest
@@ -7,7 +6,7 @@ import pytest_asyncio
 from fastapi.testclient import TestClient
 from pathlib import Path
 
-from bento_service_registry.config import Config, get_config
+from bento_service_registry.config import Config
 
 test_logger = logging.getLogger(__name__)
 
@@ -35,46 +34,25 @@ def test_get_config(debug_mode: bool):
 @pytest.fixture()
 def client():
     tgc = test_get_config(debug_mode=False)
-    from bento_service_registry.app import application
-    application.dependency_overrides[get_config] = tgc
-    yield TestClient(application)
-    application.dependency_overrides = {}
+    from bento_service_registry.app import create_app
+    app = create_app(tgc)
+    yield TestClient(app)
 
 
 @pytest.fixture()
 def client_debug_mode():
     tgc = test_get_config(debug_mode=True)
-    from bento_service_registry.app import application
-    application.dependency_overrides[get_config] = tgc
-    yield TestClient(application)
-    application.dependency_overrides = {}
+    from bento_service_registry.app import create_app
+    app = create_app(tgc)
+    yield TestClient(app)
 
 
-async def _service_info_fixt():
-    from bento_service_registry.bento_services_json import get_bento_services_by_compose_id, get_bento_services_by_kind
+async def _service_info_fixt(config: Config):
     from bento_service_registry.service_info import get_service_info
-
-    config = get_config()
-    sbci = await get_bento_services_by_compose_id(config)
-    sbk = await get_bento_services_by_kind(sbci)
-
-    return await get_service_info(sbk, config, test_logger)
+    return await get_service_info(config, test_logger)
 
 
 @pytest_asyncio.fixture()
 async def service_info():
     tgc = test_get_config(debug_mode=False)
-    from bento_service_registry.app import application
-    application.dependency_overrides[get_config] = tgc
-    yield _service_info_fixt()
-    application.dependency_overrides = {}
-
-
-@pytest_asyncio.fixture()
-async def aiohttp_session():
-    tgc = test_get_config(debug_mode=False)
-    from bento_service_registry.app import application
-    application.dependency_overrides[get_config] = tgc
-    async with aiohttp.ClientSession(timeout=1) as session:
-        yield session
-    application.dependency_overrides = {}
+    yield _service_info_fixt(tgc())
