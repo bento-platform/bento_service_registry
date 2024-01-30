@@ -1,6 +1,6 @@
-FROM ghcr.io/bento-platform/bento_base_image:python-debian-2023.12.01
+FROM ghcr.io/bento-platform/bento_base_image:python-debian-2024.01.01
 
-RUN pip install --no-cache-dir "uvicorn[standard]==0.24.0"
+RUN pip install --no-cache-dir "uvicorn[standard]==0.27.0"
 
 # Backwards-compatible with old BentoV2 container layout
 WORKDIR /service-registry
