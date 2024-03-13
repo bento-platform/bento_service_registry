@@ -70,7 +70,7 @@ class ServiceManager:
 
                 try:
                     service_resp = {**(await r.json()), "url": s_url}
-                    self._logger.info(f"{service_info_url}: Took {(datetime.now() - dt).total_seconds():.1f}s")
+                    self._logger.debug(f"{service_info_url}: Took {(datetime.now() - dt).total_seconds():.1f}s")
                 except (JSONDecodeError, aiohttp.ContentTypeError, TypeError) as e:
                     # JSONDecodeError can happen if the JSON is invalid
                     # ContentTypeError can happen if the Content-Type is not application/json

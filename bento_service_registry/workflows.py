@@ -48,7 +48,7 @@ async def get_workflows_from_service(
                 f"took {time_taken:.1f}s")
             return {}
 
-        logger.info(f"{workflows_url}: took {time_taken:.1f}s")
+        logger.debug(f"{workflows_url}: took {time_taken:.1f}s")
 
         wfs: dict[str, dict[str, dict]] = {}
 
@@ -80,6 +80,7 @@ async def get_workflows(
     service_wfs = await asyncio.gather(
         *(get_workflows_from_service(authz_header, http_session, logger, s, start_dt) for s in workflow_services)
     )
+    logger.debug(f"Fetching all workflows took {(datetime.now() - start_dt).total_seconds():.1f}s")
 
     workflows_from_services: WorkflowsByPurpose = {}
     workflows_found: int = 0
