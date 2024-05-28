@@ -37,7 +37,8 @@ def create_app(config_override: Callable[[], Config] | None = None) -> FastAPI:
     authz_middleware.attach(app)
 
     app.exception_handler(StarletteHTTPException)(
-        http_exception_handler_factory(get_logger(config_for_setup), authz_middleware))
+        http_exception_handler_factory(get_logger(config_for_setup), authz_middleware)
+    )
     app.exception_handler(RequestValidationError)(validation_exception_handler_factory(authz_middleware))
 
     return app

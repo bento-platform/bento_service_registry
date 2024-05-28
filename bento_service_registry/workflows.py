@@ -45,7 +45,8 @@ async def get_workflows_from_service(
         if res.status != status.HTTP_200_OK:
             logger.error(
                 f"Got non-200 response from data type service ({service_url=}): {res.status=}; body={data}; "
-                f"took {time_taken:.1f}s")
+                f"took {time_taken:.1f}s"
+            )
             return {}
 
         logger.debug(f"{workflows_url}: took {time_taken:.1f}s")
@@ -70,7 +71,8 @@ async def get_workflows(
     logger.debug("Collecting workflows from workflow-providing services")
 
     workflow_services = [
-        s for s in services_tuple
+        s
+        for s in services_tuple
         if (b := s.get("bento", {})).get("dataService", False) or b.get("workflowProvider", False)
     ]
 

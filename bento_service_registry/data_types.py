@@ -41,7 +41,8 @@ async def get_data_types_from_service(
     async with http_session.get(urljoin(service_url_norm, "data-types"), headers=authz_header) as res:
         if res.status != status.HTTP_200_OK:
             logger.error(
-                f"Got non-200 response from data type service ({service_url=}): {res.status=}; body={await res.json()}")
+                f"Got non-200 response from data type service ({service_url=}): {res.status=}; body={await res.json()}"
+            )
             return ()
 
         dts: list[DataTypeWithServiceURL] = []

@@ -35,6 +35,7 @@ def test_get_config(debug_mode: bool):
 def client():
     tgc = test_get_config(debug_mode=False)
     from bento_service_registry.app import create_app
+
     app = create_app(tgc)
     yield TestClient(app)
 
@@ -43,12 +44,14 @@ def client():
 def client_debug_mode():
     tgc = test_get_config(debug_mode=True)
     from bento_service_registry.app import create_app
+
     app = create_app(tgc)
     yield TestClient(app)
 
 
 async def _service_info_fixt(config: Config):
     from bento_service_registry.service_info import get_service_info
+
     return await get_service_info(config, test_logger)
 
 

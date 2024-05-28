@@ -65,7 +65,8 @@ async def get_service_by_id(
     if service_data is None:
         raise HTTPException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            f"An internal error was encountered with service with ID {service_id}")
+            f"An internal error was encountered with service with ID {service_id}",
+        )
 
     return service_data
 

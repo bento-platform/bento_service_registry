@@ -3,6 +3,7 @@ from typing import TypedDict
 
 # TODO: py3.11(?): optional TypedDict props
 
+
 # required props for chord_services.json entries
 class BaseBentoService(TypedDict):
     url_template: str
