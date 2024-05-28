@@ -91,7 +91,8 @@ class ServiceManager:
                     # TypeError can happen if None is received
                     self._logger.error(
                         f"{service_info_url}: Encountered invalid response ({str(e)}) - {await r.text()} "
-                        f"(Took {(datetime.now() - dt).total_seconds():.1f}s)")
+                        f"(Took {(datetime.now() - dt).total_seconds():.1f}s)"
+                    )
 
         except asyncio.TimeoutError:
             self._logger.error(f"Encountered timeout with {service_info_url}")
@@ -109,10 +110,12 @@ class ServiceManager:
         service_info: GA4GHServiceInfo,
     ) -> tuple[dict, ...]:
         if not self._co:
-            self._co = asyncio.gather(*(
-                self.get_service(authz_header, http_session, service_info, s)
-                for s in bento_services_by_kind.values()
-            ))
+            self._co = asyncio.gather(
+                *(
+                    self.get_service(authz_header, http_session, service_info, s)
+                    for s in bento_services_by_kind.values()
+                )
+            )
 
         service_list: list[dict | None] = await self._co
         self._co = None

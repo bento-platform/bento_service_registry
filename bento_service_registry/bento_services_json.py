@@ -54,7 +54,7 @@ BentoServicesByComposeIDDependency = Annotated[BentoServicesByComposeID, Depends
 
 
 async def get_bento_services_by_kind(
-    bento_services_by_compose_id: BentoServicesByComposeIDDependency
+    bento_services_by_compose_id: BentoServicesByComposeIDDependency,
 ) -> BentoServicesByKind:
     services_by_kind: BentoServicesByKind = {}
 
