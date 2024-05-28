@@ -13,6 +13,7 @@ from urllib.parse import urljoin
 
 from .authz_header import OptionalAuthzHeader, OptionalAuthzHeaderDependency
 from .bento_services_json import BentoServicesByKind, BentoServicesByKindDependency
+from .config import Config, ConfigDependency
 from .constants import BENTO_SERVICE_KIND
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
@@ -28,11 +29,9 @@ __all__ = [
 ]
 
 
-CACHE_TTL = 30
-
-
 class ServiceManager:
-    def __init__(self, logger: logging.Logger):
+    def __init__(self, config: Config, logger: logging.Logger):
+        self._config = config
         self._co: Awaitable[list[dict | None]] | None = None
         self._logger = logger
         self._cache: dict[str, tuple[datetime, GA4GHServiceInfo]] = {}
@@ -58,7 +57,7 @@ class ServiceManager:
 
         if service_info_url in self._cache:
             entry_dt, entry = self._cache[service_info_url]
-            if (entry_age := (dt - entry_dt).total_seconds()) > CACHE_TTL:
+            if (entry_age := (dt - entry_dt).total_seconds()) > self._config.cache_ttl:
                 del self._cache[service_info_url]
             else:
                 self._logger.debug(f"Found {service_info_url} in cache (age={entry_age:.1f}s)")
@@ -123,9 +122,10 @@ class ServiceManager:
 
 @lru_cache
 def get_service_manager(
+    config: ConfigDependency,
     logger: LoggerDependency,
 ):
-    return ServiceManager(logger)
+    return ServiceManager(config, logger)
 
 
 ServiceManagerDependency = Annotated[ServiceManager, Depends(get_service_manager)]

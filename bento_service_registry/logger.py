@@ -12,7 +12,7 @@ __all__ = [
     "LoggerDependency",
 ]
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.NOTSET)
 
 
 @lru_cache
