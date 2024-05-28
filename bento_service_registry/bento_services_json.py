@@ -1,10 +1,11 @@
 import aiofiles
 import orjson
+from async_lru import alru_cache
 from fastapi import Depends
 
 from typing import Annotated
 
-from .config import ConfigDependency
+from .config import Config, ConfigDependency
 from .types import BentoService
 
 
@@ -22,7 +23,9 @@ BentoServicesByComposeID = dict[str, BentoService]
 BentoServicesByKind = dict[str, BentoService]
 
 
-async def get_bento_services_by_compose_id(config: ConfigDependency) -> BentoServicesByComposeID:
+# cache bento_services.json contents for the lifetime of the service:
+@alru_cache()
+async def _get_bento_services_by_compose_id(config: Config) -> BentoServicesByComposeID:
     async with aiofiles.open(config.bento_services, "rb") as fh:
         bento_services_data: BentoServicesByComposeID = orjson.loads(await fh.read())
 
@@ -41,6 +44,10 @@ async def get_bento_services_by_compose_id(config: ConfigDependency) -> BentoSer
         # - e.g., the gateway.
         if not sv.get("disabled") and sv.get("service_kind")
     }
+
+
+async def get_bento_services_by_compose_id(config: ConfigDependency) -> BentoServicesByComposeID:
+    return await _get_bento_services_by_compose_id(config)
 
 
 BentoServicesByComposeIDDependency = Annotated[BentoServicesByComposeID, Depends(get_bento_services_by_compose_id)]

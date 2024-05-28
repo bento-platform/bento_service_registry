@@ -12,7 +12,7 @@ __all__ = [
 
 
 async def get_http_session(config: ConfigDependency):
-    connector = aiohttp.TCPConnector(verify_ssl=config.bento_validate_ssl)
+    connector = aiohttp.TCPConnector(verify_ssl=config.bento_validate_ssl, force_close=True)
     session = aiohttp.ClientSession(
         connector=connector,
         timeout=aiohttp.ClientTimeout(total=config.contact_timeout),
