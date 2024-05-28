@@ -21,7 +21,8 @@ class Config(BentoBaseConfig):
     service_name: str = "Bento Service Registry"
 
     bento_services: Path
-    contact_timeout: int = 5
+    contact_timeout: int = 5  # service-info contact timeout for other services
+    cache_ttl: int = 30  # service-info cache TTL for other services
 
     bento_url: str
     bento_public_url: str
