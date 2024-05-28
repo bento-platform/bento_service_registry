@@ -28,10 +28,14 @@ __all__ = [
 ]
 
 
+CACHE_TTL = 30
+
+
 class ServiceManager:
     def __init__(self, logger: logging.Logger):
         self._co: Awaitable[list[dict | None]] | None = None
         self._logger = logger
+        self._cache: dict[str, tuple[datetime, GA4GHServiceInfo]] = {}
 
     async def get_service(
         self,
@@ -51,6 +55,15 @@ class ServiceManager:
         service_info_url: str = urljoin(f"{s_url}/", "service-info")
 
         dt = datetime.now()
+
+        if service_info_url in self._cache:
+            entry_dt, entry = self._cache[service_info_url]
+            if (entry_age := (dt - entry_dt).total_seconds()) > CACHE_TTL:
+                del self._cache[service_info_url]
+            else:
+                self._logger.debug(f"Found {service_info_url} in cache (age={entry_age:.1f}s)")
+                return entry
+
         self._logger.info(f"Contacting {service_info_url}{' with bearer token' if authz_header else ''}")
 
         service_resp: dict | None = None
@@ -70,7 +83,9 @@ class ServiceManager:
 
                 try:
                     service_resp = {**(await r.json()), "url": s_url}
-                    self._logger.debug(f"{service_info_url}: Took {(datetime.now() - dt).total_seconds():.1f}s")
+                    res_dt = datetime.now()
+                    self._cache[service_info_url] = (res_dt, service_resp)
+                    self._logger.debug(f"{service_info_url}: Took {(res_dt - dt).total_seconds():.1f}s")
                 except (JSONDecodeError, aiohttp.ContentTypeError, TypeError) as e:
                     # JSONDecodeError can happen if the JSON is invalid
                     # ContentTypeError can happen if the Content-Type is not application/json
@@ -95,10 +110,10 @@ class ServiceManager:
         service_info: GA4GHServiceInfo,
     ) -> tuple[dict, ...]:
         if not self._co:
-            self._co = asyncio.gather(*[
+            self._co = asyncio.gather(*(
                 self.get_service(authz_header, http_session, service_info, s)
                 for s in bento_services_by_kind.values()
-            ])
+            ))
 
         service_list: list[dict | None] = await self._co
         self._co = None
