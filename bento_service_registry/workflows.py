@@ -92,19 +92,19 @@ async def get_workflows(
     )
 
     workflows_from_services: WorkflowsByPurpose = {}
-    workflows_found: int = 0
+    n_workflows_found: int = 0
 
     for s_wfs in service_wfs:
         for purpose, purpose_wfs in s_wfs.items():
             if purpose not in workflows_from_services:
                 workflows_from_services[purpose] = {}
             workflows_from_services[purpose].update(purpose_wfs)
-            workflows_found += len(purpose_wfs)
+            n_workflows_found += len(purpose_wfs)
 
     await logger.adebug(
         "done collecting workflows",
-        time_take=(datetime.now() - start_dt).total_seconds(),
-        workflows_found=workflows_found,
+        time_taken=(datetime.now() - start_dt).total_seconds(),
+        n_workflows_found=n_workflows_found,
     )
 
     return workflows_from_services
