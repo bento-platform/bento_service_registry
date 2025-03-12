@@ -7,7 +7,7 @@ from fastapi import Depends, status
 from typing import Annotated
 from urllib.parse import urljoin
 
-from .authz_header import OptionalAuthzHeader, OptionalAuthzHeaderDependency
+from .authz_header import OptionalHeaders, OptionalAuthzHeaderDependency
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
 from .services import ServicesDependency
@@ -23,7 +23,7 @@ WorkflowsByPurpose = dict[str, dict[str, dict]]
 
 
 async def get_workflows_from_service(
-    authz_header: OptionalAuthzHeader,
+    authz_header: OptionalHeaders,
     http_session: aiohttp.ClientSession,
     logger: structlog.stdlib.BoundLogger,
     service: dict,

@@ -11,7 +11,7 @@ from json import JSONDecodeError
 from typing import Annotated, Awaitable
 from urllib.parse import urljoin
 
-from .authz_header import OptionalAuthzHeader, OptionalAuthzHeaderDependency
+from .authz_header import OptionalHeaders, OptionalAuthzHeaderDependency
 from .bento_services_json import BentoServicesByKind, BentoServicesByKindDependency
 from .config import Config, ConfigDependency
 from .constants import BENTO_SERVICE_KIND
@@ -107,7 +107,7 @@ class ServiceManager:
 
     async def get_services(
         self,
-        authz_header: OptionalAuthzHeader,
+        authz_header: OptionalHeaders,
         bento_services_by_kind: BentoServicesByKind,
         http_session: ClientSession,
         service_info: GA4GHServiceInfo,
