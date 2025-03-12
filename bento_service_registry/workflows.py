@@ -1,6 +1,6 @@
 import aiohttp
 import asyncio
-import logging
+import structlog.stdlib
 
 from datetime import datetime
 from fastapi import Depends, status
@@ -25,31 +25,36 @@ WorkflowsByPurpose = dict[str, dict[str, dict]]
 async def get_workflows_from_service(
     authz_header: OptionalAuthzHeader,
     http_session: aiohttp.ClientSession,
-    logger: logging.Logger,
+    logger: structlog.stdlib.BoundLogger,
     service: dict,
     start_dt: datetime,
 ) -> WorkflowsByPurpose:
     service_url: str | None = service.get("url")
 
     if service_url is None:
-        logger.error(f"Encountered a service missing a URL: {service}")
+        await logger.aerror("encountered service missing URL", service=service)
         return {}
 
     service_url_norm: str = service_url.rstrip("/") + "/"
     workflows_url: str = urljoin(service_url_norm, "workflows")
 
+    logger = logger.bind(workflows_url=workflows_url)
+
     async with http_session.get(workflows_url, headers=authz_header) as res:
         data = await res.json()
         time_taken = (datetime.now() - start_dt).total_seconds()
 
+        logger = logger.bind(time_taken=time_taken)
+
         if res.status != status.HTTP_200_OK:
-            logger.error(
-                f"Got non-200 response from data type service ({service_url=}): {res.status=}; body={data}; "
-                f"took {time_taken:.1f}s"
+            await logger.aerror(
+                "got non-200 response from workflow-providing service",
+                status=res.status,
+                body=data,
             )
             return {}
 
-        logger.debug(f"{workflows_url}: took {time_taken:.1f}s")
+        await logger.adebug("fetching service workflows complete")
 
         wfs: dict[str, dict[str, dict]] = {}
 
@@ -68,7 +73,7 @@ async def get_workflows(
     logger: LoggerDependency,
     services_tuple: ServicesDependency,
 ) -> WorkflowsByPurpose:
-    logger.debug("Collecting workflows from workflow-providing services")
+    await logger.adebug("collecting workflows from workflow-providing services")
 
     workflow_services = [
         s
@@ -76,25 +81,31 @@ async def get_workflows(
         if (b := s.get("bento", {})).get("dataService", False) or b.get("workflowProvider", False)
     ]
 
-    logger.debug(f"Found {len(workflow_services)} workflow-providing services")
+    await logger.adebug("done collecting workflow-providing services", n_workflow_providers=len(workflow_services))
+
+    if not workflow_services:
+        return {}
 
     start_dt = datetime.now()
     service_wfs = await asyncio.gather(
         *(get_workflows_from_service(authz_header, http_session, logger, s, start_dt) for s in workflow_services)
     )
-    logger.debug(f"Fetching all workflows took {(datetime.now() - start_dt).total_seconds():.1f}s")
 
     workflows_from_services: WorkflowsByPurpose = {}
-    workflows_found: int = 0
+    n_workflows_found: int = 0
 
     for s_wfs in service_wfs:
         for purpose, purpose_wfs in s_wfs.items():
             if purpose not in workflows_from_services:
                 workflows_from_services[purpose] = {}
             workflows_from_services[purpose].update(purpose_wfs)
-            workflows_found += len(purpose_wfs)
+            n_workflows_found += len(purpose_wfs)
 
-    logger.debug(f"Obtained {workflows_found} workflows")
+    await logger.adebug(
+        "done collecting workflows",
+        time_taken=(datetime.now() - start_dt).total_seconds(),
+        n_workflows_found=n_workflows_found,
+    )
 
     return workflows_from_services
 

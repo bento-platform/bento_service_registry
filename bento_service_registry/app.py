@@ -1,4 +1,5 @@
 from bento_lib.responses.fastapi_errors import http_exception_handler_factory, validation_exception_handler_factory
+from bento_lib.logging.structured.fastapi import build_structlog_fastapi_middleware
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +8,7 @@ from typing import Callable
 
 from .authz import authz_middleware
 from .config import Config, get_config
+from .constants import BENTO_SERVICE_KIND
 from .logger import get_logger
 from .routes import service_registry
 
@@ -32,6 +34,9 @@ def create_app(config_override: Callable[[], Config] | None = None) -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
     )
+
+    # Add structlog FastAPI access log middleware
+    app.middleware("http")(build_structlog_fastapi_middleware(BENTO_SERVICE_KIND))
 
     # Non-standard middleware setup so that we can import the instance and use it for dependencies too
     authz_middleware.attach(app)

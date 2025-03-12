@@ -1,6 +1,6 @@
 import aiohttp
 import asyncio
-import logging
+import structlog.stdlib
 
 from aiohttp import ClientSession
 from bento_lib.service_info.types import GA4GHServiceInfo
@@ -30,10 +30,10 @@ __all__ = [
 
 
 class ServiceManager:
-    def __init__(self, config: Config, logger: logging.Logger):
-        self._config = config
+    def __init__(self, config: Config, logger: structlog.stdlib.BoundLogger):
+        self._config: Config = config
         self._co: Awaitable[list[dict | None]] | None = None
-        self._logger = logger
+        self._logger: structlog.stdlib.BoundLogger = logger
         self._cache: dict[str, tuple[datetime, GA4GHServiceInfo]] = {}
 
     async def get_service(
@@ -52,6 +52,7 @@ class ServiceManager:
             return {**service_info, "url": s_url}
 
         service_info_url: str = urljoin(f"{s_url}/", "service-info")
+        logger = self._logger.bind(service_kind=kind, service_info_url=service_info_url)
 
         dt = datetime.now()
 
@@ -60,10 +61,10 @@ class ServiceManager:
             if (entry_age := (dt - entry_dt).total_seconds()) > self._config.cache_ttl:
                 del self._cache[service_info_url]
             else:
-                self._logger.debug(f"Found {service_info_url} in cache (age={entry_age:.1f}s)")
+                await logger.adebug("found service info in cache", cache_age=entry_age)
                 return entry
 
-        self._logger.info(f"Contacting {service_info_url}{' with bearer token' if authz_header else ''}")
+        await logger.ainfo("contacting service info", with_bearer_token=bool(authz_header))
 
         service_resp: dict | None = None
 
@@ -71,12 +72,12 @@ class ServiceManager:
             async with http_session.get(service_info_url, headers=authz_header) as r:
                 if r.status != status.HTTP_200_OK:
                     r_text = await r.text()
-                    self._logger.error(f"Non-200 status code on {kind}: {r.status}  Content: {r_text}")
+                    await logger.aerror("service info fetch non-200 status code", status=r.status, body=r_text)
 
                     # If we have the special case where we got a JWT error from the proxy script, we can safely print
                     # out headers for debugging, since the JWT leaked isn't valid anyway.
                     if "invalid jwt" in r_text:
-                        self._logger.error(f"Encountered auth error on {kind}; tried to use header: {authz_header}")
+                        await logger.aerror("service info fetch encountered auth error", authz_header=authz_header)
 
                     return None
 
@@ -84,21 +85,23 @@ class ServiceManager:
                     service_resp = {**(await r.json()), "url": s_url}
                     res_dt = datetime.now()
                     self._cache[service_info_url] = (res_dt, service_resp)
-                    self._logger.debug(f"{service_info_url}: Took {(res_dt - dt).total_seconds():.1f}s")
+                    await logger.adebug("service info fetch complete", time_taken=(res_dt - dt).total_seconds())
                 except (JSONDecodeError, aiohttp.ContentTypeError, TypeError) as e:
                     # JSONDecodeError can happen if the JSON is invalid
                     # ContentTypeError can happen if the Content-Type is not application/json
                     # TypeError can happen if None is received
-                    self._logger.error(
-                        f"{service_info_url}: Encountered invalid response ({str(e)}) - {await r.text()} "
-                        f"(Took {(datetime.now() - dt).total_seconds():.1f}s)"
+                    await logger.aexception(
+                        "service info fetch invalid response",
+                        exc_info=e,
+                        body=await r.text(),
+                        time_taken=(datetime.now() - dt).total_seconds(),
                     )
 
         except asyncio.TimeoutError:
-            self._logger.error(f"Encountered timeout with {service_info_url}")
+            await logger.aerror("service info fetch timeout")
 
         except aiohttp.ClientConnectionError as e:
-            self._logger.error(f"Encountered connection error with {service_info_url}: {str(e)}")
+            await logger.aexception("service info fetch connection error", exc_info=e)
 
         return service_resp
 
