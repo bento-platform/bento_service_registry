@@ -17,9 +17,9 @@ jobs:
         run: python -m pip install poetry
       - name: Install dependencies
         run: python -m poetry install --only dev
-      - name: Run black
-        run: python -m poetry run black --check bento_service_registry tests
+      - name: Run format check
+        run: python -m poetry run ruff format --check
       - name: Run linter
-        run: python -m poetry run flake8 ./bento_service_registry ./tests
+        run: python -m poetry run ruff check
       - name: Run type checker
         run: python -m poetry run mypy bento_service_registry

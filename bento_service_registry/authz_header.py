@@ -1,23 +1,22 @@
 from fastapi import Depends, Request
-from typing import Annotated, Literal
+from typing import Annotated
 
 
 __all__ = [
-    "OptionalAuthzHeader",
+    "OptionalHeaders",
     "get_authz_header",
     "OptionalAuthzHeaderDependency",
 ]
 
 
-HeaderAuthorizationType = Literal["Authorization"]
-HEADER_AUTHORIZATION: HeaderAuthorizationType = "Authorization"
+HEADER_AUTHORIZATION = "Authorization"
 
-OptionalAuthzHeader = dict[HeaderAuthorizationType, str] | None
+OptionalHeaders = dict[str, str] | None
 
 
-def get_authz_header(request: Request) -> OptionalAuthzHeader:
+def get_authz_header(request: Request) -> OptionalHeaders:
     authz_header: str | None = request.headers.get(HEADER_AUTHORIZATION)
     return {HEADER_AUTHORIZATION: authz_header} if authz_header is not None else None
 
 
-OptionalAuthzHeaderDependency = Annotated[OptionalAuthzHeader, Depends(get_authz_header)]
+OptionalAuthzHeaderDependency = Annotated[OptionalHeaders, Depends(get_authz_header)]
