@@ -12,5 +12,6 @@ class DataTypeWithServiceURL(BaseModel):
     metadata_schema: dict
     id: str
     count: int | None
+    last_ingested: str | None = None  # TODO: datetime?
     # Injected rather than from service:
     service_base_url: str
