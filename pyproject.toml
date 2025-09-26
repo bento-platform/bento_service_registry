@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "bento_service_registry"
-version = "1.5.0"
+version = "1.5.1"
 description = "An implementation of GA4GH Service Registry API for the Bento platform."
 authors = ["David Lougheed <david.lougheed@mail.mcgill.ca>"]
 readme = "README.md"
@@ -22,8 +22,8 @@ python = "^3.10.0"
 aiodns = "^3.2.0"
 aiofiles = "^24.1.0"
 aiohttp = "^3.12.14"
-bento-lib = {extras = ["fastapi"], version = "^13.4.0"}
-fastapi = {extras = ["standard"], version = "^0.115.6"}
+bento-lib = {extras = ["fastapi"], version = "^13.5.2"}
+fastapi = {extras = ["standard"], version = "^0.116.2"}
 pydantic = "^2.9.0"
 pydantic-settings = "^2.2.1"
 orjson = "^3.10.1"
@@ -34,11 +34,11 @@ structlog = "^25.1.0"
 coverage = "^7.4.4"
 debugpy = "^1.8.8"
 httpx = "^0.28.1"
-mypy = "~1.16.1"
+mypy = "~1.18.1"
 pytest = "^8.4.0"
 pytest-asyncio = "^1.0.0"
 pytest-cov = "^6.2.1"
-ruff = "^0.12.0"
+ruff = "^0.13.2"
 tox = "^4.15.0"
 types-aiofiles = "^24.1.0"
 
