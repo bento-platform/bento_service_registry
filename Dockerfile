@@ -1,4 +1,4 @@
-FROM ghcr.io/bento-platform/bento_base_image:python-debian-2025.06.01
+FROM ghcr.io/bento-platform/bento_base_image:python-debian-2025.09.09
 
 # Backwards-compatible with old BentoV2 container layout
 WORKDIR /service-registry
