@@ -3,6 +3,7 @@ import asyncio
 import itertools
 import structlog.stdlib
 
+from datetime import datetime
 from fastapi import Depends, status
 from pydantic import ValidationError
 from typing import Annotated
@@ -92,6 +93,8 @@ async def get_data_types(
 
     logger = logger.bind(project=project, dataset=dataset)
 
+    start_dt = datetime.now()
+
     data_types_from_services: tuple[DataTypeWithServiceURL, ...] = tuple(
         itertools.chain(
             *await asyncio.gather(
@@ -105,6 +108,7 @@ async def get_data_types(
 
     await logger.adebug(
         "collected data types from data services",
+        time_taken=(datetime.now() - start_dt).total_seconds(),
         n_data_services=len(data_services),
         n_data_types=len(data_types_from_services),
     )
