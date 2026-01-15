@@ -1,4 +1,4 @@
-FROM ghcr.io/bento-platform/bento_base_image:python-debian-2025.12.01
+FROM ghcr.io/bento-platform/bento_base_image:python-debian-2025.01.14
 
 # Backwards-compatible with old BentoV2 container layout
 WORKDIR /service-registry
@@ -10,7 +10,7 @@ COPY poetry.lock .
 # Without --no-root, we get errors related to the code not being copied in yet.
 # But we don't want the code here, otherwise Docker cache doesn't work well.
 RUN poetry config virtualenvs.create false && \
-    poetry install --no-root
+    poetry install --no-root --no-cache --no-interaction
 
 # Copy entrypoint and runner script in, so we have something to start with - even though it'll get
 # overwritten by volume mount.
