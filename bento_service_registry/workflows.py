@@ -11,6 +11,7 @@ from .authz_header import OptionalHeaders, OptionalAuthzHeaderDependency
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
 from .services import ServicesDependency
+from .utils import right_slash_normalize_url
 
 __all__ = [
     "WorkflowsByPurpose",
@@ -35,36 +36,43 @@ async def get_workflows_from_service(
         await logger.aerror("encountered service missing URL", service=service)
         return {}
 
-    service_url_norm: str = service_url.rstrip("/") + "/"
+    service_url_norm: str = right_slash_normalize_url(service_url)
     workflows_url: str = urljoin(service_url_norm, "workflows")
 
     logger = logger.bind(workflows_url=workflows_url)
 
-    async with http_session.get(workflows_url, headers=authz_header) as res:
-        data = await res.json()
-        time_taken = (datetime.now() - start_dt).total_seconds()
+    try:
+        async with http_session.get(workflows_url, headers=authz_header) as res:
+            data = await res.json()
+            time_taken = (datetime.now() - start_dt).total_seconds()
 
-        logger = logger.bind(time_taken=time_taken)
+            logger = logger.bind(time_taken=time_taken)
 
-        if res.status != status.HTTP_200_OK:
-            await logger.aerror(
-                "got non-200 response from workflow-providing service",
-                status=res.status,
-                body=data,
-            )
-            return {}
+            if res.status != status.HTTP_200_OK:
+                await logger.aerror(
+                    "got non-200 response from workflow-providing service",
+                    status=res.status,
+                    body=data,
+                )
+                return {}
+    except asyncio.TimeoutError:
+        await logger.aerror("service workflow fetch timeout error")
+        return {}
+    except aiohttp.ClientConnectionError as e:
+        await logger.aexception("service workflow fetch connection error", exc_info=e)
+        return {}
 
-        await logger.adebug("fetching service workflows complete")
+    await logger.adebug("fetching service workflows complete")
 
-        wfs: dict[str, dict[str, dict]] = {}
+    wfs: dict[str, dict[str, dict]] = {}
 
-        for purpose, purpose_wfs in data.items():
-            if purpose not in wfs:
-                wfs[purpose] = {}
-            # TODO: pydantic model + validation
-            wfs[purpose].update({k: {**wf, "service_base_url": service_url_norm} for k, wf in purpose_wfs.items()})
+    for purpose, purpose_wfs in data.items():
+        if purpose not in wfs:
+            wfs[purpose] = {}
+        # TODO: pydantic model + validation
+        wfs[purpose].update({k: {**wf, "service_base_url": service_url_norm} for k, wf in purpose_wfs.items()})
 
-        return wfs
+    return wfs
 
 
 async def get_workflows(
