@@ -42,14 +42,14 @@ class ServiceManager:
         http_session: HTTPSessionDependency,
         service_info: ServiceInfoDependency,
         service_metadata: BentoService,
-    ) -> dict | None:
+    ) -> GA4GHServiceInfo | None:
         kind = service_metadata["service_kind"]
         s_url: str = service_metadata["url"]
 
         # special case: requesting info about the current service. Skip networking / self-connect;
         # instead, return pre-calculated /service-info contents.
         if kind == BENTO_SERVICE_KIND:
-            return {**service_info, "url": s_url}
+            return GA4GHServiceInfo(**service_info, url=s_url)
 
         service_info_url: str = urljoin(f"{s_url}/", "service-info")
         logger = self._logger.bind(service_kind=kind, service_info_url=service_info_url)
@@ -84,7 +84,7 @@ class ServiceManager:
                 try:
                     service_resp = {**(await r.json()), "url": s_url}
                     res_dt = datetime.now()
-                    self._cache[service_info_url] = (res_dt, service_resp)
+                    self._cache[service_info_url] = (res_dt, GA4GHServiceInfo(**service_resp))
                     await logger.adebug("service info fetch complete", time_taken=(res_dt - dt).total_seconds())
                 except (JSONDecodeError, aiohttp.ContentTypeError, TypeError) as e:
                     # JSONDecodeError can happen if the JSON is invalid
