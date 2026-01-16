@@ -6,11 +6,12 @@ import structlog.stdlib
 from datetime import datetime
 from fastapi import Depends, status
 from functools import cache
+from hashlib import sha256
 from pydantic import ValidationError
 from typing import Annotated
 from urllib.parse import urlencode, urljoin
 
-from .authz_header import OptionalHeaders, OptionalAuthzHeaderDependency
+from .authz_header import OptionalHeaders, OptionalAuthzHeaderDependency, HEADER_AUTHORIZATION
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
 from .models import DataTypeWithServiceURL
@@ -35,8 +36,8 @@ class DataTypeManager:
         #  - expiry in seconds
         self._cache_expiry: float = 3600.0
         self._data_services: int | None = None
-        #  - dict of (project, dataset): (fetch time, data types)
-        self._data_types: dict[tuple[str | None, str | None], tuple[datetime, DataTypesTuple]] = {}
+        #  - dict of (project, dataset, hash of auth header): (fetch time, data types)
+        self._data_types: dict[tuple[str | None, str | None, str], tuple[datetime, DataTypesTuple]] = {}
 
     @staticmethod
     def build_scope_query_params(project: str | None, dataset: str | None) -> str:
@@ -111,7 +112,16 @@ class DataTypeManager:
             self._data_services = n_data_services
 
         # If we have the data for the specified scope in cache, return it instead of doing a lot of fetching effort
-        if (dts := self._data_types.get(scope)) is not None and (now - dts[0]).total_seconds() < self._cache_expiry:
+        #  - we need to use a SECURE hash for the auth header, to avoid hash collision attacks getting counts where the
+        #    accessor shouldn't have permission to!
+        #  - we need to cache based on auth header in the first place because data types include entity counts
+        cache_key = (
+            scope[0],
+            scope[1],
+            sha256(authz_header.get(HEADER_AUTHORIZATION, "").encode("ascii"), usedforsecurity=True).hexdigest(),
+        )
+
+        if (dts := self._data_types.get(cache_key)) is not None and (now - dts[0]).total_seconds() < self._cache_expiry:
             await logger.adebug(
                 "returning data types from cache",
                 time_taken=(datetime.now() - now).total_seconds(),
@@ -119,11 +129,10 @@ class DataTypeManager:
             )
             return dts[1]
 
+        # Otherwise, contact data services to fetch data types. If all return a successful response, cache it.
+
         data_type_results: list[tuple[DataTypesTuple, bool]] = await asyncio.gather(
-            *(
-                self.get_data_types_from_service(authz_header, http_session, s, project, dataset)
-                for s in data_services
-            )
+            *(self.get_data_types_from_service(authz_header, http_session, s, project, dataset) for s in data_services)
         )
 
         # if at least one service returned something invalid, we can't store the cached results.
@@ -141,7 +150,7 @@ class DataTypeManager:
         )
 
         if not at_least_one_invalid:
-            self._data_types[scope] = (new_now, data_types_from_services)
+            self._data_types[cache_key] = (new_now, data_types_from_services)
 
         return data_types_from_services
 
