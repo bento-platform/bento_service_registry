@@ -6,17 +6,16 @@ import structlog.stdlib
 from datetime import datetime
 from fastapi import Depends, status
 from functools import cache
-from hashlib import sha256
 from pydantic import ValidationError
 from typing import Annotated
 from urllib.parse import urlencode, urljoin
 
-from .authz_header import OptionalHeaders, OptionalAuthzHeaderDependency, HEADER_AUTHORIZATION
+from .authz_header import OptionalHeaders, OptionalAuthzHeaderDependency
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
 from .models import DataTypeWithServiceURL
 from .services import ServicesDependency
-from .utils import right_slash_normalize_url
+from .utils import right_slash_normalize_url, authz_header_digest
 
 __all__ = [
     "DataTypesTuple",
@@ -115,11 +114,7 @@ class DataTypeManager:
         #  - we need to use a SECURE hash for the auth header, to avoid hash collision attacks getting counts where the
         #    accessor shouldn't have permission to!
         #  - we need to cache based on auth header in the first place because data types include entity counts
-        cache_key = (
-            scope[0],
-            scope[1],
-            sha256(authz_header.get(HEADER_AUTHORIZATION, "").encode("ascii"), usedforsecurity=True).hexdigest(),
-        )
+        cache_key = (scope[0], scope[1], authz_header_digest(authz_header))
 
         if (dts := self._data_types.get(cache_key)) is not None and (now - dts[0]).total_seconds() < self._cache_expiry:
             await logger.adebug(
