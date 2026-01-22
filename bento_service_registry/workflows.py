@@ -9,10 +9,11 @@ from typing import Annotated
 from urllib.parse import urljoin
 
 from .authz_header import OptionalHeaders, OptionalAuthzHeaderDependency
+from .config import Config, ConfigDependency
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
 from .services import ServicesDependency
-from .utils import right_slash_normalize_url
+from .utils import right_slash_normalize_url, authz_header_digest
 
 __all__ = [
     "WorkflowsByPurpose",
@@ -25,14 +26,19 @@ WorkflowsByPurpose = dict[str, dict[str, dict]]
 
 
 class WorkflowManager:
-    def __init__(self, logger: structlog.stdlib.BoundLogger):
-        self.logger = logger
+    def __init__(self, config: Config, logger: structlog.stdlib.BoundLogger):
+        self._config: Config = config
+        self._logger = logger
 
         # cache
-        #  - expiry in seconds
-        self._cache_expiry: float = 3600.0
         self._n_workflow_providers: int | None = None
-        self._workflows_by_purpose: tuple[datetime, WorkflowsByPurpose] | None = None
+        self._workflows_by_purpose: dict[str, tuple[datetime, WorkflowsByPurpose]] = {}
+
+    def _clean_cache(self):
+        now = datetime.now()
+        for k, v in self._workflows_by_purpose.items():
+            if (now - v[0]).total_seconds() >= self._config.workflow_cache_ttl:
+                del self._workflows_by_purpose[k]
 
     async def get_workflows_from_service(
         self,
@@ -44,13 +50,13 @@ class WorkflowManager:
         service_url: str | None = service.get("url")
 
         if service_url is None:
-            await self.logger.aerror("encountered service missing URL", service=service)
+            await self._logger.aerror("encountered service missing URL", service=service)
             return {}
 
         service_url_norm: str = right_slash_normalize_url(service_url)
         workflows_url: str = urljoin(service_url_norm, "workflows")
 
-        logger = self.logger.bind(workflows_url=workflows_url)
+        logger = self._logger.bind(workflows_url=workflows_url)
 
         try:
             async with http_session.get(workflows_url, headers=authz_header) as res:
@@ -93,7 +99,7 @@ class WorkflowManager:
     ):
         now = datetime.now()
 
-        await self.logger.adebug("collecting workflows from workflow-providing services")
+        await self._logger.adebug("collecting workflows from workflow-providing services")
 
         workflow_services = [
             s
@@ -101,12 +107,14 @@ class WorkflowManager:
             if (b := s.get("bento", {})).get("dataService", False) or b.get("workflowProvider", False)
         ]
         n_workflow_providers = len(workflow_services)
-        logger = self.logger.bind(n_workflow_providers=n_workflow_providers)
+        logger = self._logger.bind(n_workflow_providers=n_workflow_providers)
+
+        cache_key = authz_header_digest(authz_header)
 
         if (
             n_workflow_providers == self._n_workflow_providers
-            and (wfp := self._workflows_by_purpose) is not None
-            and (now - wfp[0]).total_seconds() < self._cache_expiry
+            and (wfp := self._workflows_by_purpose.get(cache_key)) is not None
+            and (now - wfp[0]).total_seconds() < self._config.workflow_cache_ttl
         ):
             # If:
             #  - the number of workflow-providing services hasn't changed
@@ -152,17 +160,20 @@ class WorkflowManager:
             n_workflows_found=n_workflows_found,
         )
 
-        self._workflows_by_purpose = (new_now, workflows_from_services)
+        self._workflows_by_purpose[cache_key] = (new_now, workflows_from_services)
+
+        # Clean up old cache entries
+        self._clean_cache()
 
         return workflows_from_services
 
 
 @cache
-def get_workflow_manager(logger: LoggerDependency) -> WorkflowManager:
+def get_workflow_manager(config: ConfigDependency, logger: LoggerDependency) -> WorkflowManager:
     """
     Gets a *singleton* instance of WorkflowManager
     """
-    return WorkflowManager(logger)
+    return WorkflowManager(config, logger)
 
 
 WorkflowManagerDependency = Annotated[WorkflowManager, Depends(get_workflow_manager)]
