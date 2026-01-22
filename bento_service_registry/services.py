@@ -1,13 +1,14 @@
-import aiohttp
-import asyncio
-import structlog.stdlib
+from __future__ import annotations
 
-from aiohttp import ClientSession
+import asyncio
+
+from aiohttp import ClientConnectionError, ClientSession, ContentTypeError
 from bento_lib.service_info.types import GA4GHServiceInfo
 from datetime import datetime
 from fastapi import Depends, status
 from functools import lru_cache
 from json import JSONDecodeError
+from structlog.stdlib import BoundLogger
 from typing import Annotated, Awaitable
 from urllib.parse import urljoin
 
@@ -30,11 +31,17 @@ __all__ = [
 
 
 class ServiceManager:
-    def __init__(self, config: Config, logger: structlog.stdlib.BoundLogger):
+    def __init__(self, config: Config, logger: BoundLogger):
         self._config: Config = config
         self._co: Awaitable[list[dict | None]] | None = None
-        self._logger: structlog.stdlib.BoundLogger = logger
+        self._logger: BoundLogger = logger
         self._cache: dict[str, tuple[datetime, GA4GHServiceInfo]] = {}
+
+    def _clean_cache(self):
+        now = datetime.now()
+        for k, v in self._cache.items():
+            if (now - v[0]).total_seconds() >= self._config.cache_ttl:
+                del self._cache[k]
 
     async def get_service(
         self,
@@ -86,7 +93,7 @@ class ServiceManager:
                     res_dt = datetime.now()
                     self._cache[service_info_url] = (res_dt, GA4GHServiceInfo(**service_resp))
                     await logger.adebug("service info fetch complete", time_taken=(res_dt - dt).total_seconds())
-                except (JSONDecodeError, aiohttp.ContentTypeError, TypeError) as e:
+                except (JSONDecodeError, ContentTypeError, TypeError) as e:
                     # JSONDecodeError can happen if the JSON is invalid
                     # ContentTypeError can happen if the Content-Type is not application/json
                     # TypeError can happen if None is received
@@ -100,7 +107,7 @@ class ServiceManager:
         except asyncio.TimeoutError:
             await logger.aerror("service info fetch timeout")
 
-        except aiohttp.ClientConnectionError as e:
+        except ClientConnectionError as e:
             await logger.aexception("service info fetch connection error", exc_info=e)
 
         return service_resp
