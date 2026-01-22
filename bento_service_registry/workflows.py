@@ -135,7 +135,7 @@ class WorkflowManager:
         await logger.adebug("done collecting workflow-providing services")
 
         if not workflow_services:
-            self._workflows_by_purpose = (now, {})
+            self._workflows_by_purpose[cache_key] = (now, {})
             return {}
 
         service_wfs = await asyncio.gather(
