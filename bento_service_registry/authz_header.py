@@ -3,6 +3,7 @@ from typing import Annotated
 
 
 __all__ = [
+    "HEADER_AUTHORIZATION",
     "OptionalHeaders",
     "get_authz_header",
     "OptionalAuthzHeaderDependency",
