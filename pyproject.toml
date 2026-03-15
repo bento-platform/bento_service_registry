@@ -27,7 +27,7 @@ fastapi = {extras = ["standard"], version = "^0.128.2"}
 pydantic = "^2.12.3"
 pydantic-settings = "^2.11.0"
 orjson = "^3.11.7"
-async-lru = "^2.0.5"
+async-lru = "~2.1.0"  # until 2.3.0 is released; allow cross-event-loop usage
 structlog = "^25.1.0"
 
 [tool.poetry.group.dev.dependencies]
