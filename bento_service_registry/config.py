@@ -4,6 +4,7 @@ from typing import Annotated
 
 from bento_lib.config.pydantic import BentoBaseConfig
 from fastapi import Depends
+from pydantic import Field
 
 from .constants import SERVICE_TYPE
 
@@ -25,9 +26,8 @@ class Config(BentoBaseConfig):
     contact_timeout: int = 5  # service-info contact timeout for other services
     cache_ttl: int = 30  # service-info cache TTL for other services
 
-    bento_url: str
     bento_public_url: str
-    bento_portal_public_url: str
+    bento_admin_public_url: str = Field(..., validation_alias="bento_portal_public_url")  # Deprecated alias
 
     authz_enabled: bool = True
 

@@ -62,14 +62,11 @@ BENTO_VALIDATE_SSL=true
 
 # Following the bento_services.json 'schema'
 # A JSON object of services registered in the service registry instance.
-# CHORD_SERVICES also works here.
 BENTO_SERVICES=bento_services.json
 
-# Common URL base for all services
-# CHORD_URL also works here.
-BENTO_URL=http://127.0.0.1:5000/
-BENTO_PUBLIC_URL=${BENTO_URL}  # By default, maps to the same URL - can be used for interpolation
-BENTO_PORTAL_PUBLIC_URL=${BENTO_URL}  # By default, maps to the same URL - can be used for interpolation
+# URLs which can be used in the BENTO_SERVICES template
+BENTO_PUBLIC_URL=http://127.0.0.1:5000/  # Can be used for interpolation
+BENTO_ADMIN_PUBLIC_URL=http://127.0.0.1:5000/  # Can be used for interpolation
 
 # Timeout, in seconds (integers only), for contacting services from the JSON
 CONTACT_TIMEOUT=5

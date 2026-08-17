@@ -15,7 +15,7 @@ def test_get_config(debug_mode: bool):
     config_vars = {
         "bento_url": "http://0.0.0.0:5000/",
         "bento_public_url": "http://0.0.0.0:5000/",
-        "bento_portal_public_url": "http://0.0.0.0:5000/",
+        "bento_admin_public_url": "http://0.0.0.0:5000/",
         "bento_services": Path(__file__).parent / "bento_services.json",
         "bento_debug": debug_mode,
         "cors_origins": ["*"],
