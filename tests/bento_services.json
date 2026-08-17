@@ -1,7 +1,7 @@
 {
   "service-registry": {
     "service_kind": "service-registry",
-    "url_template": "{BENTO_URL}api/{service_kind}",
+    "url_template": "{BENTO_PUBLIC_URL}api/{service_kind}",
     "repository": "https://github.com/bento-platform/bento_service_registry"
   }
 }

@@ -32,9 +32,10 @@ async def _get_bento_services_by_compose_id(config: Config) -> BentoServicesByCo
         sk: BentoService(
             **sv,
             url=sv["url_template"].format(
-                BENTO_URL=config.bento_url,
+                BENTO_URL=config.bento_admin_public_url,  # Deprecated; for back-compat
                 BENTO_PUBLIC_URL=config.bento_public_url,
-                BENTO_PORTAL_PUBLIC_URL=config.bento_portal_public_url,
+                BENTO_ADMIN_PUBLIC_URL=config.bento_admin_public_url,
+                BENTO_PORTAL_PUBLIC_URL=config.bento_admin_public_url,  # Deprecated; for back-compat
                 **sv,
             ),
         )  # type: ignore
