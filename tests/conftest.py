@@ -1,10 +1,10 @@
 import logging
 import os
+from pathlib import Path
+
 import pytest
 import pytest_asyncio
-
 from fastapi.testclient import TestClient
-from pathlib import Path
 
 from bento_service_registry.config import Config
 
@@ -12,15 +12,15 @@ test_logger = logging.getLogger(__name__)
 
 
 def test_get_config(debug_mode: bool):
-    config_vars = dict(
-        bento_url="http://0.0.0.0:5000/",
-        bento_public_url="http://0.0.0.0:5000/",
-        bento_portal_public_url="http://0.0.0.0:5000/",
-        bento_services=Path(__file__).parent / "bento_services.json",
-        bento_debug=debug_mode,
-        cors_origins=["*"],
-        bento_authz_service_url="http://bento-auth.local",
-    )
+    config_vars = {
+        "bento_url": "http://0.0.0.0:5000/",
+        "bento_public_url": "http://0.0.0.0:5000/",
+        "bento_portal_public_url": "http://0.0.0.0:5000/",
+        "bento_services": Path(__file__).parent / "bento_services.json",
+        "bento_debug": debug_mode,
+        "cors_origins": ["*"],
+        "bento_authz_service_url": "http://bento-auth.local",
+    }
 
     for k, v in config_vars.items():
         os.environ[k.upper()] = str(v) if not isinstance(v, list) else v[0]  # cors special case

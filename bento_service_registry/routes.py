@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from .authz import authz_middleware
 from .authz_header import OptionalAuthzHeaderDependency
-from .bento_services_json import BentoServicesByKindDependency, BentoServicesByComposeIDDependency
+from .bento_services_json import BentoServicesByComposeIDDependency, BentoServicesByKindDependency
 from .data_types import DataTypesDependency, DataTypesTuple
 from .http_session import HTTPSessionDependency
 from .models import DataTypeWithServiceURL

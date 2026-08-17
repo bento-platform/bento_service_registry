@@ -1,15 +1,15 @@
-import aiohttp
 import asyncio
 import itertools
-import structlog.stdlib
-
-from datetime import datetime
-from fastapi import Depends, status
-from pydantic import ValidationError
+from datetime import UTC, datetime
 from typing import Annotated
 from urllib.parse import urlencode, urljoin
 
-from .authz_header import OptionalHeaders, OptionalAuthzHeaderDependency
+import aiohttp
+import structlog.stdlib
+from fastapi import Depends, status
+from pydantic import ValidationError
+
+from .authz_header import OptionalAuthzHeaderDependency, OptionalHeaders
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
 from .models import DataTypeWithServiceURL
@@ -93,7 +93,7 @@ async def get_data_types(
 
     logger = logger.bind(project=project, dataset=dataset)
 
-    start_dt = datetime.now()
+    start_dt = datetime.now(UTC)
 
     data_types_from_services: tuple[DataTypeWithServiceURL, ...] = tuple(
         itertools.chain(
@@ -108,7 +108,7 @@ async def get_data_types(
 
     await logger.adebug(
         "collected data types from data services",
-        time_taken=(datetime.now() - start_dt).total_seconds(),
+        time_taken=(datetime.now(UTC) - start_dt).total_seconds(),
         n_data_services=len(data_services),
         n_data_types=len(data_types_from_services),
     )

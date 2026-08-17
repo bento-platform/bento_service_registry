@@ -1,13 +1,13 @@
-import aiohttp
 import asyncio
-import structlog.stdlib
-
-from datetime import datetime
-from fastapi import Depends, status
+from datetime import UTC, datetime
 from typing import Annotated
 from urllib.parse import urljoin
 
-from .authz_header import OptionalHeaders, OptionalAuthzHeaderDependency
+import aiohttp
+import structlog.stdlib
+from fastapi import Depends, status
+
+from .authz_header import OptionalAuthzHeaderDependency, OptionalHeaders
 from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
 from .services import ServicesDependency
@@ -44,7 +44,7 @@ async def get_workflows_from_service(
     try:
         async with http_session.get(workflows_url, headers=authz_header) as res:
             data = await res.json()
-            time_taken = (datetime.now() - start_dt).total_seconds()
+            time_taken = (datetime.now(UTC) - start_dt).total_seconds()
 
             logger = logger.bind(time_taken=time_taken)
 
@@ -94,7 +94,7 @@ async def get_workflows(
     if not workflow_services:
         return {}
 
-    start_dt = datetime.now()
+    start_dt = datetime.now(UTC)
     service_wfs = await asyncio.gather(
         *(get_workflows_from_service(authz_header, http_session, logger, s, start_dt) for s in workflow_services)
     )
@@ -111,7 +111,7 @@ async def get_workflows(
 
     await logger.adebug(
         "done collecting workflows",
-        time_taken=(datetime.now() - start_dt).total_seconds(),
+        time_taken=(datetime.now(UTC) - start_dt).total_seconds(),
         n_workflows_found=n_workflows_found,
     )
 

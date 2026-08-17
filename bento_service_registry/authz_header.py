@@ -1,6 +1,6 @@
-from fastapi import Depends, Request
 from typing import Annotated
 
+from fastapi import Depends, Request
 
 __all__ = [
     "OptionalHeaders",
