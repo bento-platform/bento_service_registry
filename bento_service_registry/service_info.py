@@ -1,15 +1,16 @@
+from logging import Logger
+from typing import Annotated
+
 from async_lru import alru_cache
 from bento_lib.service_info.helpers import build_service_info_from_pydantic_config
 from bento_lib.service_info.types import GA4GHServiceInfo
-from bento_service_registry import __version__
 from fastapi import Depends
-from logging import Logger
-from typing import Annotated
+
+from bento_service_registry import __version__
 
 from .config import Config, ConfigDependency
 from .constants import BENTO_SERVICE_KIND, SERVICE_TYPE
 from .logger import LoggerDependency
-
 
 __all__ = [
     "get_service_info",

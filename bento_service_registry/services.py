@@ -1,17 +1,18 @@
-import aiohttp
 import asyncio
-import structlog.stdlib
-
-from aiohttp import ClientSession
-from bento_lib.service_info.types import GA4GHServiceInfo
-from datetime import datetime
-from fastapi import Depends, status
+from collections.abc import Awaitable
+from datetime import UTC, datetime
 from functools import lru_cache
 from json import JSONDecodeError
-from typing import Annotated, Awaitable
+from typing import Annotated
 from urllib.parse import urljoin
 
-from .authz_header import OptionalHeaders, OptionalAuthzHeaderDependency
+import aiohttp
+import structlog.stdlib
+from aiohttp import ClientSession
+from bento_lib.service_info.types import GA4GHServiceInfo
+from fastapi import Depends, status
+
+from .authz_header import OptionalAuthzHeaderDependency, OptionalHeaders
 from .bento_services_json import BentoServicesByKind, BentoServicesByKindDependency
 from .config import Config, ConfigDependency
 from .constants import BENTO_SERVICE_KIND
@@ -19,7 +20,6 @@ from .http_session import HTTPSessionDependency
 from .logger import LoggerDependency
 from .service_info import ServiceInfoDependency
 from .types import BentoService
-
 
 __all__ = [
     "get_service_manager",
@@ -54,7 +54,7 @@ class ServiceManager:
         service_info_url: str = urljoin(f"{s_url}/", "service-info")
         logger = self._logger.bind(service_kind=kind, service_info_url=service_info_url)
 
-        dt = datetime.now()
+        dt = datetime.now(UTC)
 
         if service_info_url in self._cache:
             entry_dt, entry = self._cache[service_info_url]
@@ -83,7 +83,7 @@ class ServiceManager:
 
                 try:
                     service_resp = {**(await r.json()), "url": s_url}
-                    res_dt = datetime.now()
+                    res_dt = datetime.now(UTC)
                     self._cache[service_info_url] = (res_dt, GA4GHServiceInfo(**service_resp))
                     await logger.adebug("service info fetch complete", time_taken=(res_dt - dt).total_seconds())
                 except (JSONDecodeError, aiohttp.ContentTypeError, TypeError) as e:
@@ -94,7 +94,7 @@ class ServiceManager:
                         "service info fetch invalid response",
                         exc_info=e,
                         body=await r.text(),
-                        time_taken=(datetime.now() - dt).total_seconds(),
+                        time_taken=(datetime.now(UTC) - dt).total_seconds(),
                     )
 
         except asyncio.TimeoutError:

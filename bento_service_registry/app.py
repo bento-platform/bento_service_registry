@@ -1,10 +1,11 @@
-from bento_lib.responses.fastapi_errors import http_exception_handler_factory, validation_exception_handler_factory
+from collections.abc import Callable
+
 from bento_lib.logging.structured.fastapi import build_structlog_fastapi_middleware
+from bento_lib.responses.fastapi_errors import http_exception_handler_factory, validation_exception_handler_factory
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from typing import Callable
 
 from .authz import authz_middleware
 from .config import Config, get_config

@@ -1,13 +1,12 @@
+from typing import Annotated
+
 import aiofiles
 import orjson
 from async_lru import alru_cache
 from fastapi import Depends
 
-from typing import Annotated
-
 from .config import Config, ConfigDependency
 from .types import BentoService
-
 
 __all__ = [
     "BentoServicesByComposeID",

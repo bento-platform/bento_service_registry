@@ -1,8 +1,9 @@
-from bento_lib.config.pydantic import BentoBaseConfig
-from fastapi import Depends
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
+
+from bento_lib.config.pydantic import BentoBaseConfig
+from fastapi import Depends
 
 from .constants import SERVICE_TYPE
 
