@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import JSONResponse
 
 from .authz import authz_middleware
 from .authz_header import OptionalAuthzHeaderDependency
@@ -19,7 +20,8 @@ service_registry = APIRouter()
 
 @service_registry.get("/bento-services", dependencies=[authz_middleware.dep_public_endpoint()])
 async def bento_services(bento_services_by_compose_id: BentoServicesByComposeIDDependency):
-    return bento_services_by_compose_id
+    # unchanging public JSON served; cache for a day:
+    return JSONResponse(bento_services_by_compose_id, headers={"Cache-Control": "public, max-age=86400"})
 
 
 @service_registry.get("/services", dependencies=[authz_middleware.dep_public_endpoint()])

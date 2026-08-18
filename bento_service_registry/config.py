@@ -24,7 +24,8 @@ class Config(BentoBaseConfig):
 
     bento_services: Path
     contact_timeout: int = 5  # service-info contact timeout for other services
-    cache_ttl: int = 30  # service-info cache TTL for other services
+    cache_ttl: int = 30  # service-info cache TTL for other services (in seconds)
+    workflow_cache_ttl: int = 3600  # workflow cache TTL from workflow providers (in seconds)
 
     bento_public_url: str
     bento_admin_public_url: str = Field(
