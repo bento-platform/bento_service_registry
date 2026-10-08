@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 
-DEFAULT_SERVICE_ID = ":".join(list(SERVICE_TYPE.values())[:2])
+DEFAULT_SERVICE_ID = f"{SERVICE_TYPE['group']}:{SERVICE_TYPE['artifact']}"
 
 
 class Config(BentoBaseConfig):
