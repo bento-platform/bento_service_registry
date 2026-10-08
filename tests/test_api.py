@@ -11,6 +11,7 @@ def test_service_info(client):
     # TODO: Check against service-info schema
     assert r.status_code == 200
     assert isinstance(d, dict)
+    assert d["id"] == "ca.c3g.bento:service-registry"
     assert d["environment"] == "prod"
 
 
