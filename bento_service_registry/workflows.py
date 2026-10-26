@@ -72,7 +72,7 @@ class WorkflowManager:
                         body=data,
                     )
                     return {}
-        except asyncio.TimeoutError:
+        except TimeoutError:
             await logger.aerror("service workflow fetch timeout error")
             return {}
         except ClientConnectionError as e:

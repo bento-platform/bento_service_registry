@@ -72,7 +72,7 @@ class DataTypeManager:
                 if res.status != status.HTTP_200_OK:
                     await logger.aerror("got non-200 response from data type service", status=res.status, body=data)
                     return (), False
-        except asyncio.TimeoutError:
+        except TimeoutError:
             await logger.aerror("service data type fetch timeout error")
             return (), False
         except aiohttp.ClientConnectionError as e:
