@@ -104,7 +104,7 @@ class ServiceManager:
                         time_taken=(datetime.now(UTC) - dt).total_seconds(),
                     )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             await logger.aerror("service info fetch timeout")
 
         except ClientConnectionError as e:
